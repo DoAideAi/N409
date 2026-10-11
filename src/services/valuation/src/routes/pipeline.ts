@@ -88,7 +88,7 @@ export function registerPipelineRoutes(
     const valuation = await loadValuation(principal, id);
     refuseIfRetired(valuation, 'accepting changes');
     const body = ToggleBody.safeParse(req.body ?? {});
-    if (!body.success) throw invalidBody('Invalid body', body.error);
+    if (!body.success) throw invalidBody('Invalid pipeline toggle', body.error);
     const updated = await setValuationAutoPipeline(
       deps.pool,
       valuation,

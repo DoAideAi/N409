@@ -460,7 +460,7 @@ export function registerAuthRoutes(
   // TOTP code or a one-time backup code, and (optionally) remember the device.
   app.post('/api/v1/auth/mfa/verify', async (req, reply) => {
     const parsed = MfaVerifyBody.safeParse(req.body);
-    if (!parsed.success) throw invalidBody('Invalid request', parsed.error);
+    if (!parsed.success) throw invalidBody('Invalid MFA verification', parsed.error);
 
     let userId: string;
     try {
@@ -839,7 +839,7 @@ export function registerAuthRoutes(
 
   app.post('/api/v1/auth/forgot-password', async (req, reply) => {
     const parsed = ForgotPasswordBody.safeParse(req.body);
-    if (!parsed.success) throw invalidBody('Invalid request', parsed.error);
+    if (!parsed.success) throw invalidBody('Invalid password reset', parsed.error);
     const email = parsed.data.email;
 
     if (!allow(`email:${email.toLowerCase()}`, 3, HOUR_MS) || !allow(`ip:${req.ip}`, 30, HOUR_MS)) {
@@ -901,7 +901,7 @@ export function registerAuthRoutes(
 
   app.post('/api/v1/auth/reset-password', async (req) => {
     const parsed = ResetPasswordBody.safeParse(req.body);
-    if (!parsed.success) throw invalidBody('Invalid request', parsed.error);
+    if (!parsed.success) throw invalidBody('Invalid password reset', parsed.error);
 
     // Bounds token guessing. The tokens are long random secrets, so this is a
     // belt-and-braces limit — but an unbounded redeem endpoint also lets an
@@ -981,7 +981,7 @@ export function registerAuthRoutes(
   // URLs/server logs — the SPA reads it from the fragment and posts it here.
   app.post('/api/v1/auth/verify-email', async (req) => {
     const parsed = VerifyEmailBody.safeParse(req.body);
-    if (!parsed.success) throw invalidBody('Invalid request', parsed.error);
+    if (!parsed.success) throw invalidBody('Invalid email verification', parsed.error);
 
     if (!allow(`verify-email-ip:${req.ip}`, TOKEN_REDEEM_PER_IP, HOUR_MS)) {
       recordThrottleRefusal('email-verification');
@@ -1031,7 +1031,7 @@ export function registerAuthRoutes(
   app.post('/api/v1/auth/change-password', { preHandler: app.authenticate }, async (req, reply) => {
     const principal = requirePrincipal(req);
     const parsed = ChangePasswordBody.safeParse(req.body);
-    if (!parsed.success) throw invalidBody('Invalid request', parsed.error);
+    if (!parsed.success) throw invalidBody('Invalid password change', parsed.error);
     await assertPasswordStrong(parsed.data.new_password);
 
     const user = await findUserById(deps.pool, principal.id);
@@ -1069,7 +1069,7 @@ export function registerAuthRoutes(
   // the link's fragment and posts it here to show who the invite is for.
   app.post('/api/v1/auth/invite-info', async (req) => {
     const parsed = InviteTokenBody.safeParse(req.body);
-    if (!parsed.success) throw invalidBody('Invalid request', parsed.error);
+    if (!parsed.success) throw invalidBody('Invalid invitation token', parsed.error);
 
     // Same token space as accept-invite below, and it answers "is this token
     // real?" directly — limiting only the redeem route would leave the

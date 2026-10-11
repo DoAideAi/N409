@@ -362,7 +362,7 @@ export function registerOperationsRoutes(
       })
       .strict()
       .safeParse(req.body ?? {});
-    if (!body.success) throw invalidBody('Invalid body', body.error);
+    if (!body.success) throw invalidBody('Invalid delivery replay', body.error);
     const replayed = await replayFailedDeliveries(deps.pool, {
       ids: body.data.ids,
       partnerId: body.data.partner_id,

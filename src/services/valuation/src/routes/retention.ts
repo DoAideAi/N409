@@ -571,7 +571,7 @@ export function registerRetentionRoutes(app: FastifyInstance, deps: { pool: pg.P
     const { id } = req.params as { id: string };
     if (!isUlid(id)) throw problems.notFound();
     const parsed = RetireBody.safeParse(req.body ?? {});
-    if (!parsed.success) throw invalidBody('Invalid body', parsed.error);
+    if (!parsed.success) throw invalidBody('Invalid retirement', parsed.error);
 
     const valuation = await findValuationById(deps.pool, id);
     if (!valuation) throw problems.notFound();
@@ -653,7 +653,7 @@ export function registerRetentionRoutes(app: FastifyInstance, deps: { pool: pg.P
       const { id } = req.params as { id: string };
       if (!isUlid(id)) throw problems.notFound();
       const parsed = RestoreBody.safeParse(req.body ?? {});
-      if (!parsed.success) throw invalidBody('Invalid body', parsed.error);
+      if (!parsed.success) throw invalidBody('Invalid restoration', parsed.error);
 
       const valuation = await findValuationById(deps.pool, id);
       if (!valuation) throw problems.notFound();

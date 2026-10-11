@@ -531,7 +531,7 @@ export function registerCalculationRoutes(
     if (!paramsRow) throw problems.notFound();
 
     const parsed = ComputeBody.safeParse(req.body ?? {});
-    if (!parsed.success) throw invalidBody('Invalid inputs', parsed.error);
+    if (!parsed.success) throw invalidBody('Invalid calculation inputs', parsed.error);
 
     // Inputs = AI-extracted engine inputs, then analyst-applied inputs
     // (extraction auto-apply), then AI comparables multiples, then the
@@ -598,7 +598,7 @@ export function registerCalculationRoutes(
     if (!paramsRow) throw problems.notFound();
 
     const parsed = ComputeBody.safeParse(req.body ?? {});
-    if (!parsed.success) throw invalidBody('Invalid inputs', parsed.error);
+    if (!parsed.success) throw invalidBody('Invalid calculation inputs', parsed.error);
 
     const inputs = await buildCalculationInputs(deps.pool, id, paramsRow, parsed.data.inputs, req.log);
 

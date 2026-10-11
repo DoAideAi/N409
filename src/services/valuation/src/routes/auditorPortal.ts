@@ -131,7 +131,7 @@ export function registerAuditorPortalRoutes(
     const valuation = await loadManageable(principal, id);
     if (valuation.archived_at !== null) throw problems.conflict(RETIRED);
     const parsed = CreateBody.safeParse(req.body ?? {});
-    if (!parsed.success) throw invalidBody('Invalid request', parsed.error);
+    if (!parsed.success) throw invalidBody('Invalid auditor access grant', parsed.error);
 
     const expiresAt = new Date(Date.now() + parsed.data.expires_in_days * 24 * 60 * 60 * 1000);
     const { access, token } = await createAuditorAccess(
@@ -196,7 +196,7 @@ export function registerAuditorPortalRoutes(
       );
     }
     const parsed = RedeemBody.safeParse(req.body);
-    if (!parsed.success) throw invalidBody('Invalid request', parsed.error);
+    if (!parsed.success) throw invalidBody('Invalid auditor token', parsed.error);
     const access = await redeemAuditorToken(deps.pool, parsed.data.token);
     if (!access) throw problems.unauthorized(DEAD_LINK_DETAIL.auditor);
 

@@ -494,7 +494,7 @@ export function registerDocumentRoutes(
       if (!isOps(principal)) throw problems.forbidden('Marking a document reviewed is operations-only');
 
       const parsed = z.object({ reviewed: z.boolean().default(true) }).strict().safeParse(req.body ?? {});
-      if (!parsed.success) throw invalidBody('Invalid body', parsed.error);
+      if (!parsed.success) throw invalidBody('Invalid review status', parsed.error);
 
       await loadDocument(deps.pool, valuation.id, documentId);
       // 200 either way: the caller asked for a state the file is now in. What

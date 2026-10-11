@@ -103,7 +103,7 @@ export function registerMfaRoutes(
   app.post('/api/v1/account/mfa/setup', { preHandler: app.authenticate }, async (req) => {
     const principal = requirePrincipal(req);
     const parsed = SetupBody.safeParse(req.body);
-    if (!parsed.success) throw invalidBody('Invalid request', parsed.error);
+    if (!parsed.success) throw invalidBody('Invalid MFA setup', parsed.error);
 
     const user = await findUserById(deps.pool, principal.id);
     if (!user) throw problems.unauthorized();
@@ -129,7 +129,7 @@ export function registerMfaRoutes(
   app.post('/api/v1/account/mfa/confirm', { preHandler: app.authenticate }, async (req) => {
     const principal = requirePrincipal(req);
     const parsed = ConfirmBody.safeParse(req.body);
-    if (!parsed.success) throw invalidBody('Invalid request', parsed.error);
+    if (!parsed.success) throw invalidBody('Invalid MFA confirmation', parsed.error);
 
     const user = await findUserById(deps.pool, principal.id);
     if (!user) throw problems.unauthorized();
@@ -169,7 +169,7 @@ export function registerMfaRoutes(
   app.post('/api/v1/account/mfa/disable', { preHandler: app.authenticate }, async (req) => {
     const principal = requirePrincipal(req);
     const parsed = PasswordBody.safeParse(req.body);
-    if (!parsed.success) throw invalidBody('Invalid request', parsed.error);
+    if (!parsed.success) throw invalidBody('Invalid MFA disable', parsed.error);
 
     const user = await findUserById(deps.pool, principal.id);
     if (!user) throw problems.unauthorized();
@@ -195,7 +195,7 @@ export function registerMfaRoutes(
   app.post('/api/v1/account/mfa/backup-codes', { preHandler: app.authenticate }, async (req) => {
     const principal = requirePrincipal(req);
     const parsed = PasswordBody.safeParse(req.body);
-    if (!parsed.success) throw invalidBody('Invalid request', parsed.error);
+    if (!parsed.success) throw invalidBody('Invalid backup code request', parsed.error);
 
     const user = await findUserById(deps.pool, principal.id);
     if (!user) throw problems.unauthorized();

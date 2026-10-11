@@ -137,7 +137,7 @@ export function registerClientIntakeRoutes(
     const partnerId = resolveFirm(principal, query.data.partner_id);
 
     const parsed = CreateBody.safeParse(req.body ?? {});
-    if (!parsed.success) throw invalidBody('Invalid request', parsed.error);
+    if (!parsed.success) throw invalidBody('Invalid intake link', parsed.error);
 
     const expiresAt = new Date(Date.now() + parsed.data.expires_in_days * 24 * 60 * 60 * 1000);
     const minted = await createIntakeLink(deps.pool, {
@@ -228,7 +228,7 @@ export function registerClientIntakeRoutes(
     const partnerId = resolveFirm(principal, query.data.partner_id);
 
     const parsed = ConvertBody.safeParse(req.body ?? {});
-    if (!parsed.success) throw invalidBody('Invalid request', parsed.error);
+    if (!parsed.success) throw invalidBody('Invalid intake conversion', parsed.error);
 
     const existing = await findIntakeLink(deps.pool, partnerId, id);
     if (!existing) throw problems.notFound();
@@ -327,7 +327,7 @@ export function registerClientIntakeRoutes(
   app.post('/api/v1/intake/portal', async (req) => {
     rateLimit(req.ip);
     const parsed = TokenBody.safeParse(req.body);
-    if (!parsed.success) throw invalidBody('Invalid request', parsed.error);
+    if (!parsed.success) throw invalidBody('Invalid intake token', parsed.error);
 
     const link = await redeemIntakeToken(deps.pool, parsed.data.token);
     if (!link) throw problems.unauthorized(DEAD_LINK_DETAIL.intake);
@@ -356,7 +356,7 @@ export function registerClientIntakeRoutes(
   app.post('/api/v1/intake/portal/answers', async (req) => {
     rateLimit(req.ip);
     const parsed = SaveBody.safeParse(req.body);
-    if (!parsed.success) throw invalidBody('Invalid request', parsed.error);
+    if (!parsed.success) throw invalidBody('Invalid intake answers', parsed.error);
 
     const answers = filterIntakeAnswers(parsed.data.answers);
     const link = await saveIntakeAnswers(deps.pool, parsed.data.token, answers);
@@ -406,7 +406,7 @@ export function registerClientIntakeRoutes(
   app.post('/api/v1/intake/portal/submit', async (req) => {
     rateLimit(req.ip);
     const parsed = TokenBody.safeParse(req.body);
-    if (!parsed.success) throw invalidBody('Invalid request', parsed.error);
+    if (!parsed.success) throw invalidBody('Invalid intake submission', parsed.error);
 
     // Read first so an incomplete form gets a useful 422 rather than being
     // rejected as though its link were dead.

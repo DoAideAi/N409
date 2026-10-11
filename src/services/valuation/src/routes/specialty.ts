@@ -187,7 +187,7 @@ export function registerSpecialtyRoutes(
     const kind = requireSpecialty(valuation.kind as ValuationKind);
 
     const parsed = RunBody.safeParse(req.body ?? {});
-    if (!parsed.success) throw invalidBody('Invalid inputs', parsed.error);
+    if (!parsed.success) throw invalidBody('Invalid specialty inputs', parsed.error);
 
     const questionnaire = await findQuestionnaire(deps.pool, id);
     let request;

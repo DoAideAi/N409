@@ -378,7 +378,7 @@ export function registerAccountRoutes(
   app.delete('/api/v1/me', { preHandler: app.authenticate }, async (req, reply) => {
     const principal = requirePrincipal(req);
     const parsed = CloseAccountBody.safeParse(req.body ?? {});
-    if (!parsed.success) throw invalidBody('Invalid request', parsed.error);
+    if (!parsed.success) throw invalidBody('Invalid account closure', parsed.error);
 
     const user = await loadSelf(principal.id);
     if (user.password_digest) {
