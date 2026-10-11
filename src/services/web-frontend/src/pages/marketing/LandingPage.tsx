@@ -20,9 +20,9 @@ import {
 import { PASSWORD_HINT } from '../../lib/passwordPolicy';
 import { SignedInHandoff, handOffAfterSignIn } from '../../components/SignedInHandoff';
 
-const GOLD = '#D4AF37';
-const GOLD_LIGHT = '#E8C65A';
-const GOLD_DARK = '#B8962E';
+const GOLD = '#0d9488';
+const GOLD_LIGHT = '#2dd4bf';
+const GOLD_DARK = '#0f766e';
 
 const VALUE_PROPS = [
   'AI-powered valuations',

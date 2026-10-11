@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
-const GOLD = '#D4AF37';
-const GOLD_LIGHT = '#E8C65A';
+const GOLD = '#0d9488';
+const GOLD_LIGHT = '#2dd4bf';
 
 interface TimelineStep {
   id: string;

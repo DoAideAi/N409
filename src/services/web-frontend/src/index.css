@@ -555,10 +555,10 @@ html {
 /* ── DoAide Landing Page (split template — golden/black theme) ────────────── */
 
 .landing-root {
-  --gold: #D4AF37;
-  --gold-light: #E8C65A;
-  --gold-dark: #B8962E;
-  --gold-dim: #8B7023;
+  --gold: #0d9488;
+  --gold-light: #2dd4bf;
+  --gold-dark: #0f766e;
+  --gold-dim: #115e59;
   --bg: #1A1A1D;
   --bg-card: rgba(26, 26, 29, 0.92);
   --bg-card-hover: rgba(32, 32, 36, 0.95);
@@ -1077,7 +1077,7 @@ html {
 .landing-proof-title {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #D4AF37;
+  color: #0d9488;
   margin: 0 0 4px;
 }
 
@@ -1180,7 +1180,7 @@ html {
 .landing-timeline-dot-num {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #D4AF37;
+  color: #0d9488;
   font-family: 'IBM Plex Mono', monospace;
 }
 
@@ -1251,7 +1251,7 @@ html {
 .landing-timeline-progress-bar {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, #D4AF37, #E8C65A);
+  background: linear-gradient(90deg, #0d9488, #2dd4bf);
   border-radius: 3px;
   animation: timeline-fill 3s ease-out forwards;
 }

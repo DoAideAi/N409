@@ -84,7 +84,7 @@ function getProviders(stage: CompanyStage): ProviderData[] {
         'Audit support included',
         'Transparent, per-report pricing',
       ],
-      color: '#D4AF37',
+      color: '#0d9488',
       highlight: true,
     },
   ];
