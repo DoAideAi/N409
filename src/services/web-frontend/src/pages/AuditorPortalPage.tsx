@@ -388,7 +388,7 @@ function NoteForm({ token }: { token: string }) {
       });
       if (!res.ok) {
         throw new Error(
-          (await res.json().catch(() => ({}))).detail ?? 'Your note could not be sent. Please try again.',
+          (await res.json().catch(() => ({}))).detail ?? 'Your note could not be sent — check your connection and try again.',
         );
       }
       const { note } = await res.json();

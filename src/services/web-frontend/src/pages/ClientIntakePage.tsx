@@ -271,7 +271,7 @@ export function ClientIntakePage() {
         // schedules that attempt.
         for (const key of keys) pending.current.add(key);
         setSaveState('error');
-        setSaveError(err instanceof Error ? err.message : 'Could not save your answers.');
+        setSaveError(err instanceof Error ? err.message : 'Could not save your answers — check your connection and try again.');
         setFailures((n) => n + 1);
         return false;
       }
