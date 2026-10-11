@@ -2,17 +2,16 @@ import { brandLogo, useBranding } from '../lib/branding';
 
 export function LogoMark({ size = 32 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
-      <line x1="16" y1="6" x2="16" y2="2" stroke="#F0B429" strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="16" cy="1.5" r="1.5" fill="#F0B429" />
-      <rect x="5" y="6" width="22" height="17" rx="5" fill="#F0B429" />
-      <ellipse cx="11" cy="13" rx="2.5" ry="3" fill="#0A0A0B" />
-      <ellipse cx="21" cy="13" rx="2.5" ry="3" fill="#0A0A0B" />
-      <circle cx="11.5" cy="12.5" r="1" fill="#F7CC5F" />
-      <circle cx="21.5" cy="12.5" r="1" fill="#F7CC5F" />
-      <path d="M12 19Q16 22 20 19" stroke="#0A0A0B" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-      <rect x="1" y="10" width="4" height="5" rx="2" fill="#D4A017" />
-      <rect x="27" y="10" width="4" height="5" rx="2" fill="#D4A017" />
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="3" cy="3" r="2.6" fill="#0d9488" opacity=".92" />
+      <circle cx="12" cy="3" r="2.6" fill="#d97706" opacity=".92" />
+      <circle cx="21" cy="3" r="2.6" fill="#e11d48" opacity=".92" />
+      <circle cx="3" cy="12" r="2.6" fill="#7c3aed" opacity=".92" />
+      <circle cx="12" cy="12" r="2.6" fill="#0284c7" opacity=".92" />
+      <circle cx="21" cy="12" r="2.6" fill="#16a34a" opacity=".92" />
+      <circle cx="3" cy="21" r="2.6" fill="#db2777" opacity=".92" />
+      <circle cx="12" cy="21" r="2.6" fill="#ea580c" opacity=".92" />
+      <circle cx="21" cy="21" r="2.6" fill="#4f46e5" opacity=".92" />
     </svg>
   );
 }
@@ -50,9 +49,10 @@ export function Wordmark({ light = false }: { light?: boolean }) {
         {isPlatform ? (
           <>
             DoAide{' '}
-            <em className="font-display italic text-bond-500">
+            <span className={`mx-0.5 font-light ${light ? 'text-chrome-dim' : 'text-ink-300'}`}>|</span>{' '}
+            <span className="text-bond-600">
               409A
-            </em>
+            </span>
           </>
         ) : (
           branding.name

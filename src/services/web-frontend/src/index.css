@@ -39,25 +39,25 @@
   --color-paper-300: #ddd9cc;
   --color-paper-400: #cdc7b6;
 
-  /* bond — accent amber/gold (the TalentPing "signal") */
-  --color-bond-50: #fef9eb;
-  --color-bond-100: #fdf0cc;
-  --color-bond-200: #fae099;
-  --color-bond-300: #f7d070;
-  --color-bond-400: #f0b429;
-  --color-bond-500: #d4a01f;
-  --color-bond-600: #a87c1c;
-  --color-bond-700: #7d5c15;
-  --color-bond-800: #533e0e;
-  --color-bond-900: #2a1f08;
+  /* bond — accent teal (DoAide unified brand) */
+  --color-bond-50: #f0fdfa;
+  --color-bond-100: #ccfbf1;
+  --color-bond-200: #99f6e4;
+  --color-bond-300: #5eead4;
+  --color-bond-400: #2dd4bf;
+  --color-bond-500: #14b8a6;
+  --color-bond-600: #0d9488;
+  --color-bond-700: #0f766e;
+  --color-bond-800: #115e59;
+  --color-bond-900: #134e4a;
 
-  --color-bond-fg: #0a0a0b;
+  --color-bond-fg: #ffffff;
 
-  /* brass — sparing premium detail, harmonised with the signal accent */
-  --color-brass-300: #f7d070;
-  --color-brass-400: #f0b429;
-  --color-brass-500: #d4a01f;
-  --color-brass-600: #a87c1c;
+  /* brass — sparing premium detail, harmonised with teal */
+  --color-brass-300: #5eead4;
+  --color-brass-400: #2dd4bf;
+  --color-brass-500: #14b8a6;
+  --color-brass-600: #0d9488;
 
   /*
    * chrome — the brand furniture that is dark in BOTH themes: the app sidebar,
@@ -177,20 +177,20 @@
 
   --color-surface: #101012;
 
-  /* The accent lifts on a dark ground — bright amber. */
-  --color-bond-50: #1e1708;
-  --color-bond-100: #2a1f08;
-  --color-bond-200: #3f320f;
-  --color-bond-300: #5e4a14;
-  --color-bond-400: #a87c1c;
-  --color-bond-500: #f0b429;
-  --color-bond-600: #f7d070;
-  --color-bond-700: #f9dc8c;
-  --color-bond-800: #fae9b0;
-  --color-bond-900: #fcf2d4;
-  --color-bond-fg: #0a0a0b;
+  /* The accent lifts on a dark ground — bright teal. */
+  --color-bond-50: #042f2e;
+  --color-bond-100: #134e4a;
+  --color-bond-200: #115e59;
+  --color-bond-300: #0f766e;
+  --color-bond-400: #0d9488;
+  --color-bond-500: #2dd4bf;
+  --color-bond-600: #5eead4;
+  --color-bond-700: #99f6e4;
+  --color-bond-800: #ccfbf1;
+  --color-bond-900: #f0fdfa;
+  --color-bond-fg: #042f2e;
 
-  --color-brass-600: #f0b429;
+  --color-brass-600: #2dd4bf;
 
   /*
    * Status colours re-pointed for the near-black canvas. -50 tint for panels,
@@ -291,6 +291,20 @@
   --color-bond-700: var(--brand-accent-strong);
   --color-bond-800: var(--brand-accent-strong);
   --color-bond-fg: var(--brand-accent-fg);
+}
+
+/*
+ * DoAide design-system aliases — shared across all DoAide product sites.
+ * Components may reference these directly for brand-consistent styling.
+ */
+:root {
+  --da-primary: #0d9488;
+  --da-bg: var(--color-paper-100);
+  --da-text: var(--color-ink-900);
+  --da-surface: var(--color-surface);
+}
+:root[data-theme='dark'] {
+  --da-primary: #2dd4bf;
 }
 
 html {

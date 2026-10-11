@@ -34,12 +34,12 @@ export function getThemeChoice(): ThemeChoice {
   }
 }
 
-function prefersLight(): boolean {
-  return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: light)').matches;
+function prefersDark(): boolean {
+  return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches;
 }
 
 export function resolveTheme(choice: ThemeChoice): ResolvedTheme {
-  if (choice === 'system') return prefersLight() ? 'light' : 'dark';
+  if (choice === 'system') return prefersDark() ? 'dark' : 'light';
   return choice;
 }
 
@@ -52,9 +52,6 @@ export function applyTheme(choice: ThemeChoice): ResolvedTheme {
   const resolved = resolveTheme(choice);
   const root = document.documentElement;
   root.setAttribute('data-theme', resolved);
-  document
-    .querySelector('meta[name="theme-color"]')
-    ?.setAttribute('content', resolved === 'dark' ? '#0a0a0b' : '#0b1220');
   document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', resolved);
   return resolved;
 }
@@ -78,7 +75,7 @@ export function setThemeChoice(choice: ThemeChoice): void {
 export function subscribeTheme(listener: (choice: ThemeChoice) => void): () => void {
   listeners.add(listener);
 
-  const media = typeof matchMedia === 'function' ? matchMedia('(prefers-color-scheme: light)') : null;
+  const media = typeof matchMedia === 'function' ? matchMedia('(prefers-color-scheme: dark)') : null;
   const onSystemChange = () => {
     if (getThemeChoice() === 'system') {
       applyTheme('system');
