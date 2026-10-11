@@ -429,11 +429,13 @@ export function MarketingFooter() {
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-5 py-5 text-xs text-chrome-faint sm:flex-row sm:justify-between">
           <div className="flex flex-col items-center gap-3 sm:items-start">
             <nav className="flex flex-wrap justify-center gap-x-4 gap-y-1 font-mono text-[10px] uppercase tracking-[0.14em] sm:justify-start" aria-label="DoAide products">
+              <a href="https://gst.doaide.com" target="_blank" rel="noopener noreferrer" className="text-chrome-faint transition-colors hover:text-chrome-fg">GST</a>
               <a href="https://desk.doaide.com" target="_blank" rel="noopener noreferrer" className="text-chrome-faint transition-colors hover:text-chrome-fg">Desk</a>
               <a href="https://pulse.doaide.com" target="_blank" rel="noopener noreferrer" className="text-chrome-faint transition-colors hover:text-chrome-fg">Pulse</a>
-              <span className="text-brass-400">409A</span>
+              <span className="text-bond-500">409A</span>
               <a href="https://job.doaide.com" target="_blank" rel="noopener noreferrer" className="text-chrome-faint transition-colors hover:text-chrome-fg">AutoApply</a>
               <a href="https://homenex.doaide.com" target="_blank" rel="noopener noreferrer" className="text-chrome-faint transition-colors hover:text-chrome-fg">Realty</a>
+              <a href="https://resume.doaide.com" target="_blank" rel="noopener noreferrer" className="text-chrome-faint transition-colors hover:text-chrome-fg">Resume</a>
             </nav>
             <span>© {new Date().getFullYear()} <a href="https://doaide.com" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-chrome-fg">DoAide</a> · AI tools for small businesses</span>
           </div>
@@ -454,7 +456,25 @@ export function MarketingFooter() {
                 ))}
               </nav>
             )}
-            <span className="font-mono">Independent · Defensible · Audit-ready</span>
+            <a
+              href="https://doaide.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-full border border-chrome-700 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-chrome-dim transition-colors hover:border-bond-500 hover:text-chrome-fg"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="3" cy="3" r="2.6" fill="#0d9488" opacity=".92" />
+                <circle cx="12" cy="3" r="2.6" fill="#d97706" opacity=".92" />
+                <circle cx="21" cy="3" r="2.6" fill="#e11d48" opacity=".92" />
+                <circle cx="3" cy="12" r="2.6" fill="#7c3aed" opacity=".92" />
+                <circle cx="12" cy="12" r="2.6" fill="#0284c7" opacity=".92" />
+                <circle cx="21" cy="12" r="2.6" fill="#16a34a" opacity=".92" />
+                <circle cx="3" cy="21" r="2.6" fill="#db2777" opacity=".92" />
+                <circle cx="12" cy="21" r="2.6" fill="#ea580c" opacity=".92" />
+                <circle cx="21" cy="21" r="2.6" fill="#4f46e5" opacity=".92" />
+              </svg>
+              A DoAide Product
+            </a>
           </div>
         </div>
       </div>
