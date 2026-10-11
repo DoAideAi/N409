@@ -1,16 +1,16 @@
+@import '@fontsource-variable/inter';
 @import '@fontsource-variable/schibsted-grotesk';
 @import '@fontsource/ibm-plex-mono';
 @import '@fontsource/instrument-serif';
 @import 'tailwindcss';
 
 /*
- * DoAide 409A — "editorial-technical" theme.
- * Near-black canvas, hairline borders, amber signal accent, monospaced data.
- * Schibsted Grotesk for UI, Instrument Serif for display, IBM Plex Mono for
- * data. Matches the DoAide family design language (job.doaide.com).
+ * DoAide 409A — unified DoAide branding.
+ * White/light default, system detection, teal primary accent.
+ * Inter for UI, Instrument Serif for display, IBM Plex Mono for data.
  */
 @theme {
-  --font-sans: 'Schibsted Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
 
