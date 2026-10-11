@@ -397,7 +397,11 @@ function NoteForm({ token }: { token: string }) {
       // auditor can retry it rather than making them write it again.
       setBody('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Your note could not be sent. Please try again.');
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Your note could not be sent — check your connection and try again.',
+      );
     } finally {
       setBusy(false);
     }
