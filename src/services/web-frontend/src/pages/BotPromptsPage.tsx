@@ -392,6 +392,7 @@ function PromptCard({
 export function BotPromptsPage() {
   const [prompts, setPrompts] = useState<BotPrompt[] | null>(null);
   const [models, setModels] = useState<string[]>([]);
+  const [modelsFailed, setModelsFailed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { token, retryProps } = useRetry(() => setError(null));
 
@@ -412,7 +413,7 @@ export function BotPromptsPage() {
     void load();
     api<{ models: string[] }>('/admin/prompts/models')
       .then((d) => setModels(d.models))
-      .catch(() => {});
+      .catch(() => setModelsFailed(true));
   }, [load, token]);
 
   if (error) return <LoadError message={error} {...retryProps} />;
@@ -428,6 +429,12 @@ export function BotPromptsPage() {
         Each AI pipeline runs with a registry-managed system prompt and an optional pinned OpenRouter model.
         Changes apply to the next run — no deploy needed.
       </p>
+
+      {modelsFailed && (
+        <p className="mt-4 text-sm text-amber-600">
+          Could not load the model catalogue — you can still type a model id by hand.
+        </p>
+      )}
 
       <div className="mt-8 space-y-6">
         {prompts.length === 0 && (

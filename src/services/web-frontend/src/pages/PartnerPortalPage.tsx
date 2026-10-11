@@ -56,11 +56,13 @@ export function PartnerPortalPage() {
       .catch((err: unknown) => setError(describeLoadFailure(err, 'Could not load your portfolio.')));
   }, []);
 
+  const [orgFailed, setOrgFailed] = useState(false);
+
   // P1 #7 — the organisation's name/branding, set by the platform admins.
   useEffect(() => {
     api<{ partner: PartnerBranding }>('/partners/mine')
       .then((res) => setOrg(res.partner))
-      .catch(() => {});
+      .catch(() => setOrgFailed(true));
   }, []);
 
   const loadTokens = useCallback(() => {
@@ -138,6 +140,9 @@ export function PartnerPortalPage() {
       <p className="mt-1 text-sm text-ink-400">
         Valuations across your organisation — scoped to your partnership.
       </p>
+      {orgFailed && (
+        <p className="mt-1 text-sm text-amber-600">Could not load your organisation's branding.</p>
+      )}
 
       {error && (
         <div className="mt-6">
