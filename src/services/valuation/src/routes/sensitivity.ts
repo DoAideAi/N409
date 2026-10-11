@@ -137,7 +137,7 @@ export function registerSensitivityRoutes(
     if (!paramsRow) throw problems.notFound();
 
     const parsed = ModelBody.safeParse(req.body ?? {});
-    if (!parsed.success) throw invalidBody('Invalid options', parsed.error);
+    if (!parsed.success) throw invalidBody('Invalid sensitivity options', parsed.error);
     const b = parsed.data;
 
     const inputs = await buildCalculationInputs(deps.pool, id, paramsRow, b.inputs, req.log);

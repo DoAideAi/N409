@@ -1022,7 +1022,7 @@ export function registerAiRoutes(app: FastifyInstance, deps: AiPipelineDeps): vo
     }
 
     const body = RunBody.safeParse(req.body ?? {});
-    if (!body.success) throw invalidBody('Invalid options', body.error);
+    if (!body.success) throw invalidBody('Invalid AI agent options', body.error);
 
     // Merge the auto-attached calculation with any caller-supplied agent context.
     const merged = { ...(extraPayload ?? {}), ...(body.data.context ?? {}) };
@@ -1164,7 +1164,7 @@ export function registerAiRoutes(app: FastifyInstance, deps: AiPipelineDeps): vo
 
       const body = ApplyProfileBody.safeParse(req.body ?? {});
       if (!body.success) {
-        throw invalidBody('Invalid options', body.error);
+        throw invalidBody('Invalid profile apply options', body.error);
       }
 
       const job = await latestSucceededJob(deps.pool, id, 'company_profile');
@@ -1317,7 +1317,7 @@ export function registerAiRoutes(app: FastifyInstance, deps: AiPipelineDeps): vo
     refuseIfRetired(valuation, 'accepting changes');
 
     const body = AnonymizeBody.safeParse(req.body ?? {});
-    if (!body.success) throw invalidBody('Invalid options', body.error);
+    if (!body.success) throw invalidBody('Invalid anonymization options', body.error);
     const { text, document_ids: documentIds, known_companies: known, known_people: people } = body.data;
 
     if (text.trim() === '' && documentIds.length === 0) {

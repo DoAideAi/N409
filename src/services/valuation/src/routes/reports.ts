@@ -1025,7 +1025,7 @@ export function registerReportRoutes(
     if (!deps.ai) throw problems.unprocessable('The narrative digital robot is not configured');
 
     const parsed = NarrativeBody.safeParse(req.body ?? {});
-    if (!parsed.success) throw invalidBody('Invalid options', parsed.error);
+    if (!parsed.success) throw invalidBody('Invalid narrative options', parsed.error);
 
     const report = await loadOrCreateReport(deps.pool, principal, valuation);
     const version = await getVersionContent(deps.pool, report.id, report.current_version);

@@ -69,7 +69,7 @@ export function registerQaRoutes(app: FastifyInstance, deps: AiPipelineDeps): vo
     refuseIfRetired(valuation, 'accepting changes');
 
     const body = RunBody.safeParse(req.body ?? {});
-    if (!body.success) throw invalidBody('Invalid options', body.error);
+    if (!body.success) throw invalidBody('Invalid QA review options', body.error);
 
     const calculation = await latestSucceededCalculation(deps.pool, valuation.id);
     if (!calculation) {
