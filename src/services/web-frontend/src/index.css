@@ -108,7 +108,7 @@
    * a dark stroke on a dark ground. They keep their light-mode values here and
    * lift to their -400-weight equivalents in the dark block below.
    *
-   * Ordering: amber first (the accent), then the muted tones.
+   * Ordering: teal first (the accent), then the muted tones.
    */
   --color-chart-1: #b98d4f;
   --color-chart-2: #2f7d5b;
@@ -157,7 +157,7 @@
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  /* paper → TalentPing's near-black canvas; "50 is subtlest" still holds */
+  /* paper → near-black canvas; "50 is subtlest" still holds */
   --color-paper-50: #101012;
   --color-paper-100: #0a0a0b;
   --color-paper-200: #16161a;
@@ -552,7 +552,7 @@ html {
   }
 }
 
-/* ── DoAide Landing Page (split template — golden/black theme) ────────────── */
+/* ── DoAide Landing Page (split template — teal/black theme) ────────────── */
 
 .landing-root {
   --gold: #0d9488;
@@ -574,7 +574,7 @@ html {
   position: relative;
 }
 
-/* ── Animated background — golden glows ── */
+/* ── Animated background — teal glows ── */
 
 .landing-bg {
   position: fixed;
