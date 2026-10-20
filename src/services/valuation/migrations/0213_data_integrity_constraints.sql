@@ -67,8 +67,10 @@ UPDATE email_subscribers SET email = lower(email) WHERE email <> lower(email);
 ALTER TABLE email_subscribers DROP CONSTRAINT email_subscribers_email_unique;
 CREATE UNIQUE INDEX email_subscribers_email_key ON email_subscribers (lower(email));
 
--- ── 5. Share-token expiry: partial index for live tokens ─────────────────────
+-- ── 5. Share-token expiry: no index needed ───────────────────────────────────
 -- The summary route now filters expired tokens in SQL (see code change in
--- routes/shareTokens.ts). This index makes that predicate an index scan.
-CREATE INDEX share_tokens_live_idx
-  ON valuation_share_tokens (token) WHERE expires_at > now();
+-- routes/shareTokens.ts). A partial index `WHERE expires_at > now()` was tried
+-- here and cannot exist: Postgres only allows IMMUTABLE functions in an index
+-- predicate and now() is STABLE, so the migration failed on every version.
+-- None is needed anyway — `token` is the primary key (0211), so the lookup is
+-- already an index scan and expires_at is checked on the single row it finds.
