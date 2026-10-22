@@ -328,9 +328,59 @@ describe('single-origin posture', () => {
  * document: the theme resolver in web-frontend/index.html is inline and
  * synchronous by design, and every prerendered document inherits it.
  */
+const directiveOf = (csp: string, name: string): string[] =>
+  (csp.split(';').find((d) => d.trim().startsWith(`${name} `)) ?? '').trim().split(/\s+/).slice(1);
+
+/** Origins of every external script and stylesheet a document asks for. */
+function externalOrigins(html: string): { scripts: string[]; styles: string[] } {
+  const origin = (url: string): string | null => (/^https?:\/\//.test(url) ? new URL(url).origin : null);
+  const scripts: string[] = [];
+  const styles: string[] = [];
+  for (const m of html.matchAll(/<script\b[^>]*\bsrc\s*=\s*["']([^"']+)["']/gi)) {
+    const o = origin(m[1]!);
+    if (o) scripts.push(o);
+  }
+  for (const m of html.matchAll(/<link\b[^>]*>/gi)) {
+    if (!/\brel\s*=\s*["']?stylesheet/i.test(m[0])) continue;
+    const href = /\bhref\s*=\s*["']([^"']+)["']/i.exec(m[0])?.[1];
+    const o = href ? origin(href) : null;
+    if (o) styles.push(o);
+  }
+  return { scripts, styles };
+}
+
+describe('self-hosted analytics', () => {
+  it('admits the Umami script and the beacon it sends back', async () => {
+    const app = buildApp({ staticRoot: '/nonexistent' });
+    const res = await app.inject({ method: 'GET', url: '/health' });
+    const csp = String(res.headers['content-security-policy']);
+    expect(directiveOf(csp, 'script-src')).toContain('https://analytics.doaide.com');
+    expect(directiveOf(csp, 'connect-src')).toContain('https://analytics.doaide.com');
+    await app.close();
+  });
+});
+
 describe('the built frontend', () => {
   const dist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../web-frontend/dist');
   const built = existsSync(path.join(dist, 'index.html'));
+
+  /**
+   * The check that would have caught both of the faults it was written after:
+   * a Google Fonts stylesheet and the Umami tag, each in index.html, each
+   * refused by this header on every page view, each visible only as a console
+   * error on the visitor's machine. Whatever the document asks a browser to
+   * fetch by URL has to be something the header served with it allows.
+   */
+  it.skipIf(!built)('asks for no external script or stylesheet the CSP would refuse', async () => {
+    const app = buildApp({ staticRoot: dist });
+    const res = await app.inject({ method: 'GET', url: '/' });
+    const csp = String(res.headers['content-security-policy']);
+    const { scripts, styles } = externalOrigins(res.body);
+
+    for (const o of scripts) expect(directiveOf(csp, 'script-src')).toContain(o);
+    for (const o of styles) expect(directiveOf(csp, 'style-src')).toContain(o);
+    await app.close();
+  });
 
   it.skipIf(!built)('ships exactly one executable inline script, and CSP admits it', async () => {
     const app = buildApp({ staticRoot: dist });

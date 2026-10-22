@@ -26,19 +26,29 @@ import {
   trustedProxies,
   WEB_PERMISSIONS_POLICY,
 } from '@n409/shared';
+import { blogHeadSource, blogSlugFrom, injectHead, renderBlogHead } from './blogHead.js';
 
 // Analytics hosts the SPA loads *after* cookie consent (§23/§25). Allowed in
 // the CSP so opt-in analytics works; everything else is self-only.
+//
+// The exception is analytics.doaide.com, the estate's self-hosted Umami. It
+// sets no cookies and stores no identifier, so index.html loads it on every
+// page without waiting for consent — and for as long as it was missing here
+// the browser refused it on every page, so the site had no traffic data at all
+// while the tag sat in the document looking installed. It needs both
+// directives: the script is fetched by src, and it reports by fetch().
 const ANALYTICS_SCRIPT = [
   'https://www.googletagmanager.com',
   'https://www.google-analytics.com',
   'https://connect.facebook.net',
+  'https://analytics.doaide.com',
 ];
 const ANALYTICS_CONNECT = [
   'https://www.google-analytics.com',
   'https://region1.google-analytics.com',
   'https://www.googletagmanager.com',
   'https://www.facebook.com',
+  'https://analytics.doaide.com',
 ];
 
 export interface WebAppOptions {
@@ -56,6 +66,10 @@ export interface WebAppOptions {
   pool?: pg.Pool;
   /** Injectable for tests — stands in for the upstream /ready probes. */
   readinessFetch?: typeof fetch;
+  /** Injectable for tests — stands in for the blog lookups behind /blog/:slug. */
+  blogFetch?: typeof fetch;
+  /** Origin written into canonical and Open Graph URLs. Defaults to SITE_URL. */
+  siteUrl?: string;
 }
 
 /**
@@ -654,7 +668,15 @@ export function buildApp(opts: WebAppOptions = {}): FastifyInstance {
     // The SPA/prerender fallback serves HTML under an arbitrary route path, so
     // it never matches a hashed asset — pin it to no-cache explicitly rather
     // than letting the filename heuristic decide.
-    app.get('/*', (req, reply) => {
+    // Blog posts are the one public page family the build cannot prerender —
+    // see blogHead.ts. The shell is read once; a build without it simply
+    // serves posts the way it always did.
+    const shellPath = path.join(staticRoot, 'shell.html');
+    const blogShell = existsSync(shellPath) ? readFileSync(shellPath, 'utf8') : undefined;
+    const siteOrigin = (opts.siteUrl ?? process.env.SITE_URL ?? 'https://409.doaide.com').trim().replace(/\/+$/, '');
+    const blogPost = blogHeadSource({ valuationUrl, fetchFn: opts.blogFetch });
+
+    app.get('/*', async (req, reply) => {
       const file = prerendered.get(manifestKey(req.url));
       if (file === undefined && looksLikeAssetRequest(req.url)) {
         // A file that is not there. Say so, rather than handing back the shell
@@ -662,6 +684,13 @@ export function buildApp(opts: WebAppOptions = {}): FastifyInstance {
         return reply.code(404).type('text/plain; charset=utf-8').send('Not Found');
       }
       void reply.header('cache-control', HTML_CACHE_CONTROL);
+
+      const slug = file === undefined && blogShell ? blogSlugFrom(req.url) : undefined;
+      if (slug) {
+        const post = await blogPost(slug);
+        const html = post && injectHead(blogShell!, renderBlogHead(post, siteOrigin));
+        if (html) return reply.type('text/html; charset=utf-8').send(html);
+      }
       return reply.sendFile(file ?? 'index.html');
     });
   } else {
