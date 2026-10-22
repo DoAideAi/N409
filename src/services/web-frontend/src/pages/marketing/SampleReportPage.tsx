@@ -48,6 +48,11 @@ export function SampleReportPage() {
   const [figures, setFigures] = useState<Figure[]>([]);
   const [pdfAvailable, setPdfAvailable] = useState(false);
   const [failed, setFailed] = useState(false);
+  /* The inline preview is opt-in. Mounting an <iframe> of the PDF on page load
+     would pull the whole document over the connection of every visitor who
+     only came to read the chapter list — the preview costs nothing until the
+     button that asks for it is pressed. */
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   useEffect(() => {
     api<SampleResponse>('/sample-report')
@@ -107,6 +112,61 @@ export function SampleReportPage() {
           No email required. The sample is a fictitious company and every page is marked as such — it is
           published to show the structure, not to be relied on.
         </p>
+      )}
+
+      {pdfAvailable && (
+        <section className="mt-10">
+          {/* Desktop and tablet read the document here; phones get a
+              new-tab link instead, because mobile browsers hand an embedded
+              PDF to a viewer of their own choosing or render nothing at all —
+              a grey rectangle is worse than no preview. */}
+          <div className="hidden sm:block">
+            {previewOpen ? (
+              <div className="overflow-hidden rounded-lg border border-paper-300 shadow-card">
+                <iframe
+                  src={PDF_URL}
+                  title="Sample 409A valuation report preview"
+                  data-testid="sample-report-preview"
+                  className="h-[75vh] w-full bg-surface"
+                />
+              </div>
+            ) : (
+              <button
+                type="button"
+                data-testid="sample-report-preview-toggle"
+                onClick={() => setPreviewOpen(true)}
+                className="flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-paper-300 bg-paper-50 px-6 py-10 text-center transition-colors hover:border-bond-400 hover:bg-bond-50"
+              >
+                <svg
+                  aria-hidden="true"
+                  width="28"
+                  height="28"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="text-bond-600"
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <path d="M14 2v6h6M9 13h6M9 17h6" strokeLinecap="round" />
+                </svg>
+                <span className="text-sm font-semibold text-ink-900">Preview the report in your browser</span>
+                <span className="text-xs text-ink-500">
+                  Read the full document right here — no download, no email.
+                </span>
+              </button>
+            )}
+          </div>
+          <a
+            href={PDF_URL}
+            target="_blank"
+            rel="noopener"
+            data-testid="sample-report-open"
+            className="mt-3 inline-block text-sm font-semibold text-bond-600 hover:text-bond-700 sm:text-xs"
+          >
+            Open the sample report in a new tab →
+          </a>
+        </section>
       )}
 
       {figures.length > 0 && (
