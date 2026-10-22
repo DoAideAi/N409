@@ -141,6 +141,13 @@ function prerenderPlugin(baseUrl: string): Plugin {
       }
       shell = withFontPreloads(shell, assets);
 
+      // The shell as it stands before any route claims it, head-fallback block
+      // intact, for the one public family that cannot be prerendered here: blog
+      // posts live in the database, so the web service fills this per request
+      // (src/services/web/src/blogHead.ts). index.html cannot serve that
+      // purpose — it is about to become the prerendered homepage.
+      writeFileSync(path.join(outDir, 'shell.html'), shell, 'utf8');
+
       const pages = prerenderPages(shell, baseUrl, allPageMeta());
       let preloaded = 0;
       for (const page of pages) {

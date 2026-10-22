@@ -103,7 +103,11 @@ describe('output paths and manifest', () => {
     const pages = prerenderPages(SHELL, ORIGIN);
     expect(pages).toHaveLength(allPageMeta().length);
     const rendered = new Set(pages.map((p) => p.route));
+    // Blog posts are the exception, and the only one: they live in the
+    // database, so the web service fills their head per request from
+    // shell.html instead (src/services/web/src/blogHead.ts).
     for (const route of marketingRoutes()) {
+      if (/^\/blog\/[^/]+$/.test(route.path)) continue;
       expect(rendered.has(route.path), `${route.path} not prerendered`).toBe(true);
     }
   });
