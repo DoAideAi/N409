@@ -10,7 +10,9 @@ import {
   MARKET_PRICE_BANDS,
   METHODS_SECTIONS,
   NONCOMPLIANCE_CONSEQUENCES,
+  PENALTIES_SECTIONS,
   PROVIDER_TYPES,
+  SAFE_HARBOR_SECTIONS,
 } from '../../lib/marketingContent';
 import { Seo } from '../../components/Seo';
 import { pageMeta } from '../../lib/pageMeta';
@@ -277,6 +279,52 @@ export function ValuationMethodsPage() {
           {section.bullets && <Bullets items={section.bullets} />}
         </section>
       ))}
+    </GuideShell>
+  );
+}
+
+/** `/409a-safe-harbor` */
+export function SafeHarborPage() {
+  return (
+    <GuideShell
+      path="/409a-safe-harbor"
+      overline="Safe harbor"
+      title="The 409A safe harbor, explained"
+      standfirst="The regulations never require a valuation — they offer a presumption of reasonableness that shifts the burden of proof onto the IRS. What the three safe harbor methods are, why one of them is the only one that matters in practice, and the three ways companies lose it."
+    >
+      {SAFE_HARBOR_SECTIONS.map((section) => (
+        <section key={section.heading} data-testid="guide-section">
+          <h2 className="font-display text-2xl font-semibold text-ink-900">{section.heading}</h2>
+          <p className="mt-3 text-[0.95rem] leading-relaxed text-ink-700">{section.body}</p>
+          {section.bullets && <Bullets items={section.bullets} />}
+        </section>
+      ))}
+      <p className="text-sm leading-relaxed text-ink-500">
+        This is general information, not tax advice. Talk to your own adviser about your specific facts.
+      </p>
+    </GuideShell>
+  );
+}
+
+/** `/409a-penalties` */
+export function PenaltiesPage() {
+  return (
+    <GuideShell
+      path="/409a-penalties"
+      overline="Penalties"
+      title="409A penalties: what non-compliance actually costs"
+      standfirst="The penalty for a discounted strike price falls on the option holder, not the company that set it — tax at vesting, a 20% federal addition, and interest. What a violation costs, how it surfaces, and why the fix is cheap next to the cure."
+    >
+      {PENALTIES_SECTIONS.map((section) => (
+        <section key={section.heading} data-testid="guide-section">
+          <h2 className="font-display text-2xl font-semibold text-ink-900">{section.heading}</h2>
+          <p className="mt-3 text-[0.95rem] leading-relaxed text-ink-700">{section.body}</p>
+          {section.bullets && <Bullets items={section.bullets} />}
+        </section>
+      ))}
+      <p className="text-sm leading-relaxed text-ink-500">
+        This is general information, not tax advice. Talk to your own adviser about your specific facts.
+      </p>
     </GuideShell>
   );
 }

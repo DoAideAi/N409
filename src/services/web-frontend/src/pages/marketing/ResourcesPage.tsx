@@ -72,6 +72,16 @@ const GUIDES = [
     path: '/409a-valuation-methods',
   },
   {
+    title: 'The 409A Safe Harbor, Explained',
+    description: 'What the presumption is, the three methods that earn it, and the three ways you lose it.',
+    path: '/409a-safe-harbor',
+  },
+  {
+    title: '409A Penalties: What Non-Compliance Costs',
+    description: 'Tax at vesting, a 20% federal addition and interest — who pays it and how it surfaces.',
+    path: '/409a-penalties',
+  },
+  {
     title: 'How Much Does a 409A Cost?',
     description: 'Market price bands, what drives cost, and how DoAide 409A compares.',
     path: '/how-much-does-a-409a-cost',

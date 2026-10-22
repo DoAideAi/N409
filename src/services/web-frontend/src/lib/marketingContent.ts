@@ -1127,6 +1127,82 @@ export const COST_COMPARISON_SECTIONS: GuideSection[] = [
   },
 ];
 
+/** `/409a-safe-harbor` — what the presumption is, how it is obtained, how it is lost. */
+export const SAFE_HARBOR_SECTIONS: GuideSection[] = [
+  {
+    heading: 'What the safe harbor actually is',
+    body: 'Section 409A does not require a valuation — it requires that options be granted at or above fair market value. The safe harbor is a presumption: if the valuation was performed in one of the ways the regulations name, the IRS must accept your strike price unless it can show the valuation was grossly unreasonable. Without it, the burden runs the other way — you prove, years later, that your number was right. The entire product a founder buys when they buy a 409A is that reversal of the burden of proof.',
+  },
+  {
+    heading: 'The three safe harbor methods',
+    body: 'The regulations name three routes to the presumption. In practice, venture-backed companies use the first almost exclusively, because the other two are narrower than they look.',
+    bullets: [
+      'Independent appraisal — a valuation by a qualified, independent appraiser, dated no more than 12 months before the grant. The standard route, and the one every institutional investor and auditor expects.',
+      'Illiquid start-up presumption — a written report by someone with significant knowledge and experience, for a company under 10 years old with no public market and no anticipated liquidity event. Few companies that rely on it would survive the "significant experience" test on audit.',
+      'Binding formula — a formula price used consistently for all transfers of the stock, compensatory and otherwise. Almost never workable for a venture-backed cap table.',
+    ],
+  },
+  {
+    heading: 'What "independent" and "qualified" mean',
+    body: 'Independence is about relationships: the appraiser cannot be an employee, and cannot have a stake in the outcome. Qualification is about demonstrable experience with the methods the report uses — option pricing models, allocation, marketability discounts. A report signed by a credentialed analyst with no other relationship to the company is what the presumption was written for.',
+  },
+  {
+    heading: 'How the safe harbor is lost',
+    body: 'The presumption is not a certificate — it attaches grant by grant, and it lapses without ceremony. The three ways companies lose it:',
+    bullets: [
+      'The clock: a grant dated more than 12 months after the valuation date has no safe harbor at all — not a weaker one, none.',
+      'A material event: a priced round, a term sheet, an acquisition approach, a large secondary — any of these invalidates the valuation the day it happens, regardless of the anniversary.',
+      'Reliance on a report that was never qualified: a founder-built model or an automated number with no independent appraiser behind it does not carry the presumption, however reasonable the output.',
+    ],
+  },
+  {
+    heading: 'What the safe harbor is worth in practice',
+    body: 'Audits of option pricing usually arrive attached to something else — diligence on an acquisition, an IRS examination of an executive, an S-1 review. By then the grants are years old. With the presumption, the conversation starts from "show us the report"; without it, from "prove this price". The cost of the valuation is small against the cost of carrying that burden for every grant on the ledger.',
+  },
+];
+
+/** `/409a-penalties` — what non-compliance costs, who pays it, and how it surfaces. */
+export const PENALTIES_SECTIONS: GuideSection[] = [
+  {
+    heading: 'Who the penalty actually falls on',
+    body: 'The defining asymmetry of Section 409A: the company sets the strike price, but the penalty lands on the option holder. An employee holding a non-compliant option owes tax on paper gains they cannot sell, plus a federal penalty, plus interest. The company created the exposure; the employee carries it. That is why a discounted strike price is usually discovered by an employee\'s accountant — at exercise, at departure, or in an acquisition — and why it becomes a company problem the moment it is.',
+  },
+  {
+    heading: 'What a violation costs the option holder',
+    body: 'When an option is found to violate 409A, the consequences stack:',
+    bullets: [
+      'Immediate income tax on the spread as the option vests — not at exercise, at vesting — in every year the option remains outstanding and vested',
+      'An additional 20% federal penalty tax on that income',
+      'Premium interest on the underpayment, backdated to the year of vesting',
+      'State additions on top — California layers its own additional tax on the same income',
+    ],
+  },
+  {
+    heading: 'What it costs the company',
+    body: 'The company\'s exposure is indirect but larger than it looks. Reporting and withholding obligations attach once a violation exists, and failing those carries its own penalties. The practical costs are bigger still:',
+    bullets: [
+      'Acquirers reprice or restructure deals over option-pricing exposure found in diligence — escrows, indemnities, or fixing the grants at the company\'s expense',
+      'Auditors who find cheap stock close to an IPO force a charge and a restatement of option expense',
+      'Making employees whole — gross-ups, repricing, tender offers to cancel bad grants — is the usual commercial resolution, and it is the company that pays',
+      'Investor confidence: a cap table with known 409A exposure is a disclosure item in every subsequent round',
+    ],
+  },
+  {
+    heading: 'How violations actually surface',
+    body: 'The IRS does not run a 409A audit programme that sweeps startups at random. Violations surface attached to other events, which is what makes them expensive — they are found late, after years of vesting have accrued.',
+    bullets: [
+      'Acquisition diligence — the buyer\'s counsel reads every grant against every valuation date',
+      'IPO preparation — underwriters and auditors review cheap stock for the S-1',
+      'An employee\'s personal audit — one examined return can open the grant practice',
+      'A dispute — a departing executive\'s counsel knows exactly what an underpriced grant is worth as leverage',
+    ],
+  },
+  {
+    heading: 'The fix is cheap; the cure is not',
+    body: 'Compliance costs a few thousand dollars a year: an independent appraisal before the first grant, refreshed inside every 12 months or after any material event, with board approval on the record. Correction programmes exist for options caught before they vest, but they require acting early and documenting everything. After vesting, there is no clean fix — only negotiation about who absorbs the damage. If your last valuation is near its anniversary or a round has closed since, that is the whole signal.',
+  },
+];
+
 // ── Funding-stage landing pages ───────────────────────────────────────────────
 //
 // The light half of `/409a-valuation/:stage` — see the note above `COMPARISONS`

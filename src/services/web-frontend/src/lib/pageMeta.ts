@@ -134,6 +134,28 @@ export function staticPages(): HeadInput[] {
       ]),
     },
     {
+      path: '/409a-safe-harbor',
+      title: '409A safe harbor explained: what it is and how you lose it',
+      description:
+        'The 409A safe harbor is a presumption that shifts the burden of proof onto the IRS. The three safe harbor methods, what independent and qualified mean, and how companies lose the presumption.',
+      jsonLd: breadcrumbJsonLd([
+        HOME_CRUMB,
+        { name: 'Resources', path: '/resources' },
+        { name: '409A Safe Harbor', path: '/409a-safe-harbor' },
+      ]),
+    },
+    {
+      path: '/409a-penalties',
+      title: '409A penalties: what non-compliance costs and who pays it',
+      description:
+        'A 409A violation taxes the option holder at vesting, adds a 20% federal penalty plus interest, and surfaces in diligence, audits and IPO prep. What it costs the employee and the company.',
+      jsonLd: breadcrumbJsonLd([
+        HOME_CRUMB,
+        { name: 'Resources', path: '/resources' },
+        { name: '409A Penalties', path: '/409a-penalties' },
+      ]),
+    },
+    {
       path: '/tools/409a-valuation-calculator',
       title: '409A valuation calculator',
       description:

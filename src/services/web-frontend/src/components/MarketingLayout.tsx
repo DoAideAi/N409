@@ -215,76 +215,88 @@ export function MarketingHeader() {
       </div>
 
       {mobileOpen && (
-        <div id="marketing-mobile-menu" className="border-t border-paper-300 bg-surface px-5 py-4 md:hidden">
+        /* Scrollable, capped to the viewport below the 4rem header. The menu
+           lives inside the sticky header, so a menu taller than the screen —
+           which this one is, on small phones, once the product catalogue is in
+           it — had no way to scroll: the links past the fold were simply
+           unreachable. `dvh` tracks the collapsing browser chrome on mobile,
+           which is exactly where the overflow happens. */
+        <div
+          id="marketing-mobile-menu"
+          className="max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain border-t border-paper-300 bg-surface px-5 py-4 md:hidden"
+        >
           <ProductsMenu onNavigate={() => setMobileOpen(false)} />
-          <div className="mt-3 flex flex-col gap-2 border-t border-paper-200 pt-3">
+          {/* Row links are full-width blocks with ~44px of tappable height,
+              not bare text runs — the gap between 20px-tall text targets is
+              where mis-taps on a phone come from. */}
+          <div className="mt-3 flex flex-col border-t border-paper-200 pt-2">
             <Link
               to="/pricing"
               onClick={() => setMobileOpen(false)}
-              className="text-sm font-semibold text-ink-700"
+              className="block rounded-md px-2 py-2.5 text-sm font-semibold text-ink-700 hover:bg-paper-100"
             >
               Pricing
             </Link>
             <Link
               to="/which-valuation"
               onClick={() => setMobileOpen(false)}
-              className="text-sm font-semibold text-ink-700"
+              className="block rounded-md px-2 py-2.5 text-sm font-semibold text-ink-700 hover:bg-paper-100"
             >
               Which valuation?
             </Link>
             <Link
               to="/sample-report"
               onClick={() => setMobileOpen(false)}
-              className="text-sm font-semibold text-ink-700"
+              className="block rounded-md px-2 py-2.5 text-sm font-semibold text-ink-700 hover:bg-paper-100"
             >
               Sample report
             </Link>
             <Link
               to="/tools/409a-valuation-calculator"
               onClick={() => setMobileOpen(false)}
-              className="text-sm font-semibold text-ink-700"
+              className="block rounded-md px-2 py-2.5 text-sm font-semibold text-ink-700 hover:bg-paper-100"
             >
               409A calculator
             </Link>
             <Link
               to="/tools/stock-option-tax-calculator"
               onClick={() => setMobileOpen(false)}
-              className="text-sm font-semibold text-ink-700"
+              className="block rounded-md px-2 py-2.5 text-sm font-semibold text-ink-700 hover:bg-paper-100"
             >
               Tax calculator
             </Link>
             <Link
               to="/tools/409a-compliance-checker"
               onClick={() => setMobileOpen(false)}
-              className="text-sm font-semibold text-ink-700"
+              className="block rounded-md px-2 py-2.5 text-sm font-semibold text-ink-700 hover:bg-paper-100"
             >
               Compliance checker
             </Link>
             <Link
               to="/tools/readiness-checker"
               onClick={() => setMobileOpen(false)}
-              className="text-sm font-semibold text-ink-700"
+              className="block rounded-md px-2 py-2.5 text-sm font-semibold text-ink-700 hover:bg-paper-100"
             >
               Readiness checker
             </Link>
             <Link
               to="/tools/cost-comparison"
               onClick={() => setMobileOpen(false)}
-              className="text-sm font-semibold text-ink-700"
+              className="block rounded-md px-2 py-2.5 text-sm font-semibold text-ink-700 hover:bg-paper-100"
             >
               Cost comparison
             </Link>
             <Link
               to="/login"
               onClick={() => setMobileOpen(false)}
-              className="text-sm font-semibold text-ink-700"
+              className="block rounded-md px-2 py-2.5 text-sm font-semibold text-ink-700 hover:bg-paper-100"
             >
               Log in
             </Link>
             <Link
               to="/register"
               onClick={() => setMobileOpen(false)}
-              className="rounded-md bg-bond-600 px-4 py-2 text-center text-sm font-semibold text-bond-fg"
+              className="mt-2 rounded-md bg-bond-600 px-4 py-2.5 text-center text-sm font-semibold text-bond-fg"
             >
               Start valuation
             </Link>
@@ -394,6 +406,12 @@ export function MarketingFooter() {
             </Link>
             <Link to="/when-do-you-need-a-409a" className="hover:text-chrome-fg">
               When do you need one?
+            </Link>
+            <Link to="/409a-safe-harbor" className="hover:text-chrome-fg">
+              Safe harbor explained
+            </Link>
+            <Link to="/409a-penalties" className="hover:text-chrome-fg">
+              409A penalties
             </Link>
             <Link to="/how-much-does-a-409a-cost" className="hover:text-chrome-fg">
               What does it cost?

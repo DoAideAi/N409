@@ -65,6 +65,8 @@ const BLOG_SLUGS = [
   'israeli-section-102-options-and-the-trustee-route',
   'what-a-valuation-provider-needs-from-your-cap-table',
   'board-approval-and-the-409a-paper-trail',
+  'how-to-get-a-409a-valuation-for-your-startup',
+  'free-409a-valuation-tools-what-they-can-and-cannot-do',
 ];
 
 /** Marketing/public routes only — auth and app routes are intentionally excluded. */
@@ -90,6 +92,8 @@ export function marketingRoutes(): SitemapRoute[] {
     { path: '/409a-valuation-cost-comparison', changefreq: 'monthly', priority: 0.7 },
     { path: '/when-do-you-need-a-409a', changefreq: 'monthly', priority: 0.7 },
     { path: '/how-much-does-a-409a-cost', changefreq: 'monthly', priority: 0.7 },
+    { path: '/409a-safe-harbor', changefreq: 'monthly', priority: 0.7 },
+    { path: '/409a-penalties', changefreq: 'monthly', priority: 0.7 },
     { path: '/sample-report', changefreq: 'monthly', priority: 0.8 },
     { path: '/compare/409a-valuation-providers', changefreq: 'monthly', priority: 0.7 },
     // The partner channel is a second acquisition funnel, not a footnote: one

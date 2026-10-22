@@ -22,11 +22,12 @@ describe('ResourcesPage', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('409A Resources & Tools');
   });
 
-  it('lists all three free tools', () => {
+  it('lists the free tools', () => {
     renderPage();
     expect(screen.getByText('409A Valuation Calculator')).toBeTruthy();
     expect(screen.getByText('Stock Option Tax Calculator')).toBeTruthy();
     expect(screen.getByText('409A Compliance Checker')).toBeTruthy();
+    expect(screen.getByText('Startup Valuation Estimator')).toBeTruthy();
   });
 
   it('links to tool pages', () => {
@@ -36,7 +37,7 @@ describe('ResourcesPage', () => {
       (l) =>
         l.getAttribute('href')?.startsWith('/tools/'),
     );
-    expect(toolLinks.length).toBe(3);
+    expect(toolLinks.length).toBe(4);
   });
 
   it('lists educational guides', () => {
@@ -44,5 +45,7 @@ describe('ResourcesPage', () => {
     expect(screen.getByText('The 409A Valuation Guide')).toBeTruthy();
     expect(screen.getByText('When Do You Need a 409A?')).toBeTruthy();
     expect(screen.getByText('How Much Does a 409A Cost?')).toBeTruthy();
+    expect(screen.getByText('The 409A Safe Harbor, Explained')).toBeTruthy();
+    expect(screen.getByText('409A Penalties: What Non-Compliance Costs')).toBeTruthy();
   });
 });

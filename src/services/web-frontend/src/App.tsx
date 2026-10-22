@@ -44,6 +44,8 @@ const WhenDoYouNeedPage = named(() => import('./pages/marketing/GuidePages'), 'W
 const ValuationCostPage = named(() => import('./pages/marketing/GuidePages'), 'ValuationCostPage');
 const ValuationMethodsPage = named(() => import('./pages/marketing/GuidePages'), 'ValuationMethodsPage');
 const ValuationCostComparisonPage = named(() => import('./pages/marketing/GuidePages'), 'ValuationCostComparisonPage');
+const SafeHarborPage = named(() => import('./pages/marketing/GuidePages'), 'SafeHarborPage');
+const PenaltiesPage = named(() => import('./pages/marketing/GuidePages'), 'PenaltiesPage');
 const CalculatorPage = named(() => import('./pages/marketing/CalculatorPage'), 'CalculatorPage');
 const TaxCalculatorPage = named(() => import('./pages/marketing/TaxCalculatorPage'), 'TaxCalculatorPage');
 const ComplianceCheckerPage = named(() => import('./pages/marketing/ComplianceCheckerPage'), 'ComplianceCheckerPage');
@@ -250,6 +252,8 @@ export default function App() {
             <Route path="/409a-valuation-cost-comparison" element={<ValuationCostComparisonPage />} />
             <Route path="/when-do-you-need-a-409a" element={<WhenDoYouNeedPage />} />
             <Route path="/how-much-does-a-409a-cost" element={<ValuationCostPage />} />
+            <Route path="/409a-safe-harbor" element={<SafeHarborPage />} />
+            <Route path="/409a-penalties" element={<PenaltiesPage />} />
             <Route path="/tools/409a-valuation-calculator" element={<CalculatorPage />} />
             <Route path="/tools/stock-option-tax-calculator" element={<TaxCalculatorPage />} />
             <Route path="/tools/409a-compliance-checker" element={<ComplianceCheckerPage />} />
