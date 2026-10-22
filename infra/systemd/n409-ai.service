@@ -14,7 +14,11 @@ Type=simple
 WorkingDirectory=/opt/N409/src/services/ai
 EnvironmentFile=/opt/N409/.env
 Environment=APP_ENV=production
-Environment=ENGINE_URL=http://127.0.0.1:3003
+# ENGINE_URL comes from /opt/N409/.env, not from here. A host that moves the
+# engine off its default port (a shared box already using 3003) edits one file;
+# setting it in both places made the boot value depend on a systemd precedence
+# rule, which the preflight rightly rejects. The code defaults to
+# http://127.0.0.1:3003 when unset.
 ExecStart=/opt/N409/src/services/ai/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 3002 --timeout-graceful-shutdown 15
 Restart=always
 RestartSec=3
