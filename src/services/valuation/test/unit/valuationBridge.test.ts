@@ -364,3 +364,48 @@ describe('bridge report section', () => {
     expect(section.html).not.toContain('<b>');
   });
 });
+
+describe('bridge contributions foot to the printed total (C102 M2)', () => {
+  const calc = (fmv: number, equity: number, dloc: number, dlom: number) => ({
+    fmv_per_share: fmv,
+    equity_value: equity,
+    discounts: { dloc, dlom },
+  });
+
+  it('adds to the struck change, to the fourth place, across a sweep', () => {
+    let seed = 11;
+    const rnd = () => ((seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31);
+    const pick = () =>
+      calc(
+        Math.round((0.1 + rnd() * 10) * 1e4) / 1e4,
+        1e6 + rnd() * 1e8,
+        Math.round(rnd() * 3000) / 1e4,
+        Math.round(rnd() * 4000) / 1e4,
+      );
+    for (let i = 0; i < 2000; i++) {
+      const b = buildBridge(pick(), pick());
+      expect(b.decomposable).toBe(true);
+      const units = b.factors.map((f) => Math.round(f.contribution * 1e4));
+      // Each contribution is a whole number of ten-thousandths…
+      b.factors.forEach((f, k) => expect(f.contribution * 1e4).toBeCloseTo(units[k]!, 6));
+      // …and together they are the change the page prints.
+      expect(units.reduce((a, u) => a + u, 0)).toBe(Math.round(b.delta * 1e4));
+    }
+  });
+
+  it('moves no contribution by more than one unit of the fourth place', () => {
+    const from = calc(2.1234, 10_000_000, 0.1, 0.3);
+    const to = calc(3.5678, 14_000_000, 0.05, 0.25);
+    const b = buildBridge(from, to);
+    const L = (3.5678 - 2.1234) / Math.log(3.5678 / 2.1234);
+    const raw = [
+      L * Math.log(14_000_000 / 10_000_000),
+      L * Math.log(0.95 / 0.9),
+      L * Math.log(0.75 / 0.7),
+    ];
+    const byKey = Object.fromEntries(b.factors.map((f) => [f.key, f.contribution]));
+    expect(Math.abs(byKey.company_value! - raw[0]!)).toBeLessThanOrEqual(1e-4);
+    expect(Math.abs(byKey.dloc! - raw[1]!)).toBeLessThanOrEqual(1e-4);
+    expect(Math.abs(byKey.dlom! - raw[2]!)).toBeLessThanOrEqual(1e-4);
+  });
+});

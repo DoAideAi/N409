@@ -137,6 +137,38 @@ function driver(key: string, label: string, from: number | null, to: number | nu
 }
 
 /**
+ * The LMDI contributions, struck at `PER_SHARE_DIGITS` so that they add to the
+ * struck total change.
+ *
+ * The decomposition is exact — the contributions sum to the change — but each
+ * one is printed to four places under a "Total change" row printed to four
+ * places, and rounding the five figures independently left about a third of
+ * bridges a ten-thousandth out (−3.4959 + 7.7136 + 1.5214 − 0.6914 = 5.0477
+ * above a 5.0476 total), in the report table and on the app's waterfall alike.
+ * Largest remainder: each is rounded, and the few units the rounding lost or
+ * gained go to the contributions whose rounding moved them furthest.
+ */
+function footedContributions(raw: number[]): number[] {
+  const scale = 10 ** PER_SHARE_DIGITS;
+  const scaled = raw.map((c) => c * scale);
+  const units = scaled.map((c) => Math.round(c));
+  const target = Math.round(scaled.reduce((a, c) => a + c, 0));
+  let gap = target - units.reduce((a, u) => a + u, 0);
+  // Order by how far rounding moved each one *against* the direction the gap
+  // needs, so the nudge lands where it moves a figure least from its own value.
+  const order = scaled
+    .map((c, i) => ({ i, residual: c - units[i]! }))
+    .sort((a, b) => (gap > 0 ? b.residual - a.residual : a.residual - b.residual));
+  for (let k = 0; gap !== 0 && k < order.length; k++) {
+    const step = Math.sign(gap);
+    const at = order[k]!.i;
+    units[at] = units[at]! + step;
+    gap -= step;
+  }
+  return units.map((u) => u / scale);
+}
+
+/**
  * Build the bridge from two engine `results` objects (from → to). Throws only
  * on structurally unusable inputs (missing FMV); a non-decomposable case still
  * returns the totals and drivers with `decomposable: false`.
@@ -210,12 +242,15 @@ export function buildBridge(from: Results, to: Results): ValuationBridge {
   let factors: BridgeFactor[];
   if (allPositive) {
     const L = logMean(toFmv, fromFmv);
-    factors = factorPairs.map((f) => ({
+    const contributions = footedContributions(
+      factorPairs.map((f) => L * Math.log((f.to as number) / (f.from as number))),
+    );
+    factors = factorPairs.map((f, i) => ({
       key: f.key,
       label: f.label,
       from: round(f.from as number),
       to: round(f.to as number),
-      contribution: round(L * Math.log((f.to as number) / (f.from as number))),
+      contribution: contributions[i]!,
     }));
   } else {
     // Fall back to reporting factor levels without an exact split.
