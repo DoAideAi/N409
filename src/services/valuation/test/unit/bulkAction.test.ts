@@ -100,9 +100,19 @@ describe('ids filter (bulk export of a selection)', () => {
     expect(parsed.ids!.length).toBeLessThanOrEqual(200);
   });
 
-  it('maps into repo filters only when non-empty', () => {
-    expect(toRepoFilters(ValuationFilterQuery.parse({ ids: 'garbage' })).ids).toBeUndefined();
+  it('keeps a supplied list that resolves to nothing as an empty selection', () => {
+    // An empty selection must select nothing, not drop the filter and export
+    // every engagement in scope.
+    expect(toRepoFilters(ValuationFilterQuery.parse({ ids: 'garbage' })).ids).toEqual([]);
+    expect(toRepoFilters(ValuationFilterQuery.parse({ ids: '' })).ids).toEqual([]);
+    expect(toRepoFilters(ValuationFilterQuery.parse({})).ids).toBeUndefined();
     expect(toRepoFilters(ValuationFilterQuery.parse({ ids: ID_A })).ids).toEqual([ID_A]);
+  });
+
+  it('builds a match-nothing clause for an empty selection', () => {
+    const { whereSql, params } = buildValuationWhere({ kind: 'own', userId: 'U1' }, { ids: [] });
+    expect(whereSql).toContain('id = ANY($2)');
+    expect(params).toEqual(['U1', []]);
   });
 
   it('builds an id = ANY(...) clause scoped on top of RBAC', () => {

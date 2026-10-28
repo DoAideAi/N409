@@ -196,7 +196,11 @@ export function toRepoFilters(
     group: f.group,
     bucket: f.bucket,
     q: f.q || undefined,
-    ids: f.ids?.length ? f.ids : undefined,
+    // Kept even when empty. `?ids=` is what "export selected" sends with
+    // nothing checked, and `?ids=garbage` names no row either; collapsing
+    // either to undefined dropped the filter, so `valuations-selected.csv`
+    // came back holding every engagement in scope.
+    ids: f.ids,
     reviewerId: f.reviewer_id,
     partnerId: f.partner_id,
     userId: f.user_id,

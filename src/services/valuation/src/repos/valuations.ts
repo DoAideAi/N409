@@ -590,7 +590,10 @@ export function buildValuationWhere(
 
   if (scope.kind === 'partner') add('partner_id = ?', scope.partnerId);
   if (scope.kind === 'own') add('user_id = ?', scope.userId);
-  if (filters.ids?.length) add('id = ANY(?)', filters.ids);
+  // An empty list is a selection of nothing, and `id = ANY('{}')` matches
+  // nothing — never "no filter", which would hand a selected-rows export the
+  // caller's whole scope.
+  if (filters.ids) add('id = ANY(?)', filters.ids);
   if (filters.state) add('state = ?', filters.state);
   else if (filters.bucket) {
     // The two non-state buckets are not state predicates: `waiting_on_client`
