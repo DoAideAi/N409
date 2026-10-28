@@ -11,6 +11,7 @@ import {
   setupTestApp,
   type TestApp,
 } from './helpers.js';
+import { bindingCookie } from './oauthBinding.js';
 
 const dbUp = await isDbAvailable();
 
@@ -575,20 +576,37 @@ describe.skipIf(!dbUp)('Google SSO — a closed account is refused at the door',
   afterAll(async () => ctx?.teardown());
 
   /** A signed OIDC state, taken from the leg that mints one. */
-  async function freshState(): Promise<string> {
+  /** A state, and the binding cookie the browser that started sign-in holds for it. */
+  async function freshState(): Promise<{ state: string; cookie: string }> {
     const start = await ctx.app.inject({ method: 'GET', url: '/api/v1/auth/google' });
     expect(start.statusCode).toBe(302);
     const state = new URL(start.headers.location as string).searchParams.get('state');
     if (!state) throw new Error(`no state in ${start.headers.location as string}`);
-    return state;
+    return { state, ...bindingCookie(start, 'google-sign-in') };
   }
 
-  const callback = async () =>
-    ctx.app.inject({
+  const callback = async () => {
+    const { state, cookie } = await freshState();
+    return ctx.app.inject({
       method: 'GET',
-      url: `/api/v1/auth/google/callback?code=stub-code&state=${encodeURIComponent(await freshState())}`,
-      headers: { accept: 'text/html' },
+      url: `/api/v1/auth/google/callback?code=stub-code&state=${encodeURIComponent(state)}`,
+      headers: { accept: 'text/html', cookie },
     });
+  };
+
+  it('refuses a callback completed in a browser that did not start sign-in (C102 M10)', async () => {
+    // Login CSRF: the attacker finishes Google's consent with their own
+    // account and forwards the callback URL. The victim's browser holds no
+    // nonce for that state, so it is not signed into the attacker's account.
+    const { state } = await freshState();
+    const res = await ctx.app.inject({
+      method: 'GET',
+      url: `/api/v1/auth/google/callback?code=stub-code&state=${encodeURIComponent(state)}`,
+      headers: { accept: 'application/json' },
+    });
+    expect(res.statusCode).toBe(401);
+    expect(res.cookies.find((c) => c.name === 'n409_session' && c.value)).toBeUndefined();
+  });
 
   it('sends a deactivated account back to the sign-in page instead of issuing a session', async () => {
     identity.email = `${newUlid().toLowerCase()}@closed.example.com`;
@@ -604,7 +622,8 @@ describe.skipIf(!dbUp)('Google SSO — a closed account is refused at the door',
     expect(res.headers.location).toBe('/login?sso_error=account_deactivated');
     // No token, by either route out: the fragment convention or the cookie.
     expect(res.headers.location).not.toContain('#token=');
-    expect(res.headers['set-cookie']).toBeUndefined();
+    // The only cookie set is the spent sign-in nonce being cleared; never a session.
+    expect(res.cookies.filter((c) => c.name !== 'n409_oauth_google_sign_in')).toEqual([]);
 
     // The closed row is not relinked or re-verified by a sign-in that is
     // refused — it looks the same afterwards as before.
@@ -660,7 +679,8 @@ describe.skipIf(!dbUp)('Google SSO — a closed account is refused at the door',
       const res = await callback();
       expect(res.statusCode).toBe(302);
       expect(res.headers.location).toBe('/login?sso_error=registration_closed');
-      expect(res.headers['set-cookie']).toBeUndefined();
+      // The only cookie set is the spent sign-in nonce being cleared; never a session.
+      expect(res.cookies.filter((c) => c.name !== 'n409_oauth_google_sign_in')).toEqual([]);
       const { rowCount } = await ctx.pool.query('SELECT 1 FROM users WHERE lower(email) = $1', [
         identity.email,
       ]);

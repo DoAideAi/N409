@@ -15,6 +15,7 @@ import {
   verifySession,
   type JwtConfig,
 } from '../auth/jwt.js';
+import { bindIntegrationFlow, integrationFlowBound } from '../auth/integrationBinding.js';
 import {
   clearSessionCookie,
   setSessionCookie,
@@ -656,7 +657,7 @@ export function registerAuthRoutes(
 
   app.get('/api/v1/auth/google', async (req, reply) => {
     if (!deps.google) return refuseSso(req, reply, 'not_configured', googleUnconfigured());
-    const state = await signOidcState(deps.jwt);
+    const state = await signOidcState(deps.jwt, bindIntegrationFlow(reply, 'google-sign-in', baseUrl));
     return reply.redirect(deps.google.authorizationUrl(state), 302);
   });
 
@@ -668,10 +669,18 @@ export function registerAuthRoutes(
       return refuseSso(req, reply, 'invalid_request', problems.badRequest('Missing code/state'));
     }
 
+    let oidcState: { binding?: string };
     try {
-      await verifyOidcState(query.data.state, deps.jwt);
+      oidcState = await verifyOidcState(query.data.state, deps.jwt);
     } catch (err) {
       req.log.warn({ err }, 'OIDC state verification failed');
+      return refuseSso(req, reply, 'invalid_request', problems.unauthorized('Invalid OIDC state'));
+    }
+    // Login CSRF: a callback URL completed with someone else's Google account
+    // and forwarded here must not sign this browser into it. See
+    // auth/integrationBinding.ts. Before the code is spent.
+    if (!integrationFlowBound(req, reply, 'google-sign-in', oidcState.binding, baseUrl)) {
+      req.log.warn('Google callback arrived without the browser binding its state was minted with');
       return refuseSso(req, reply, 'invalid_request', problems.unauthorized('Invalid OIDC state'));
     }
     /*

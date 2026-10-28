@@ -5,6 +5,7 @@ import { createUser } from '../../src/repos/users.js';
 import { hashPassword } from '../../src/auth/password.js';
 import { totp, TOTP_PERIOD_SECONDS } from '../../src/auth/totp.js';
 import { authHeader, isDbAvailable, setupTestApp, type TestApp } from './helpers.js';
+import { bindingCookie } from './oauthBinding.js';
 
 const dbUp = await isDbAvailable();
 
@@ -54,20 +55,23 @@ describe.skipIf(!dbUp)('SSO hand-off — an account with 2FA is challenged, not 
   });
   afterAll(async () => ctx?.teardown());
 
-  async function freshState(): Promise<string> {
+  /** A state, and the binding cookie the browser that started sign-in holds for it. */
+  async function freshState(): Promise<{ state: string; cookie: string }> {
     const start = await ctx.app.inject({ method: 'GET', url: '/api/v1/auth/google' });
     expect(start.statusCode).toBe(302);
     const state = new URL(start.headers.location as string).searchParams.get('state');
     if (!state) throw new Error(`no state in ${start.headers.location as string}`);
-    return state;
+    return { state, ...bindingCookie(start, 'google-sign-in') };
   }
 
-  const callback = async (headers: Record<string, string> = { accept: 'text/html' }) =>
-    ctx.app.inject({
+  const callback = async (headers: Record<string, string> = { accept: 'text/html' }) => {
+    const { state, cookie } = await freshState();
+    return ctx.app.inject({
       method: 'GET',
-      url: `/api/v1/auth/google/callback?code=stub-code&state=${encodeURIComponent(await freshState())}`,
-      headers,
+      url: `/api/v1/auth/google/callback?code=stub-code&state=${encodeURIComponent(state)}`,
+      headers: { ...headers, cookie },
     });
+  };
 
   /** A password account that has completed enrolment, as its owner would. */
   async function seedEnrolled(): Promise<{ id: string; email: string; secret: string }> {
@@ -113,7 +117,8 @@ describe.skipIf(!dbUp)('SSO hand-off — an account with 2FA is challenged, not 
     expect(location).toContain('#mfa=');
     expect(location).not.toContain('#token=');
     // And no session by the other route out either.
-    expect(res.headers['set-cookie']).toBeUndefined();
+    // The only cookie set is the spent sign-in nonce being cleared; never a session.
+    expect(res.cookies.filter((c) => c.name !== 'n409_oauth_google_sign_in')).toEqual([]);
 
     // The challenge is the one `/auth/mfa/verify` redeems, and redeeming it is
     // what issues the session — so the factor is required, not merely displayed.

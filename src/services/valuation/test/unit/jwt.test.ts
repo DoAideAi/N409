@@ -77,7 +77,11 @@ describe('session JWTs (issue #3)', () => {
 
   it('OIDC state round-trips and rejects session tokens as state', async () => {
     const state = await signOidcState(cfg);
-    await expect(verifyOidcState(state, cfg)).resolves.toBeUndefined();
+    await expect(verifyOidcState(state, cfg)).resolves.toEqual({});
+    // The browser binding rides inside the signature (C102 M10).
+    await expect(verifyOidcState(await signOidcState(cfg, 'nonce-hash'), cfg)).resolves.toEqual({
+      binding: 'nonce-hash',
+    });
     const session = await signSession(claims(), cfg);
     await expect(verifyOidcState(session, cfg)).rejects.toThrow();
   });

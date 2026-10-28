@@ -28,8 +28,14 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
  * and Strict does not; scoped to the callback's own path, so it travels
  * nowhere else. A victim's browser never holds the attacker's nonce, so step 3
  * is refused.
+ *
+ * Google sign-in is the same hop with a worse step 3: the attacker completes
+ * Google's consent with *their own* account, stops before following the
+ * redirect, and sends that callback URL instead. Without the binding it signed
+ * the victim into the attacker's N409 account, where whatever the victim then
+ * uploaded — a cap table, a set of financials — was the attacker's to read.
  */
-export type IntegrationFlow = 'accounting' | 'cap-table-sync' | 'hris';
+export type IntegrationFlow = 'accounting' | 'cap-table-sync' | 'hris' | 'google-sign-in';
 
 /** The cookie a flow's nonce rides in. One per flow, so two flows in two tabs do not clobber each other. */
 export function integrationCookieName(flow: IntegrationFlow): string {
@@ -38,7 +44,7 @@ export function integrationCookieName(flow: IntegrationFlow): string {
 
 /** The path each flow's provider redirects back to — and the only path its cookie is sent on. */
 export function integrationCallbackPath(flow: IntegrationFlow): string {
-  return `/api/v1/${flow}/callback`;
+  return flow === 'google-sign-in' ? '/api/v1/auth/google/callback' : `/api/v1/${flow}/callback`;
 }
 
 /**
@@ -57,7 +63,7 @@ function cookiePath(flow: IntegrationFlow, publicBaseUrl: string): string {
   return `${prefix}${integrationCallbackPath(flow)}`;
 }
 
-/** Matches the signed state's own lifetime (`signIntegrationState`: 30m). */
+/** Matches the longest signed state's lifetime (`signIntegrationState`: 30m; OIDC is 10m). */
 const BINDING_TTL_SECONDS = 30 * 60;
 
 function digest(nonce: string): string {

@@ -95,9 +95,15 @@ export async function verifyMfaChallenge(token: string, cfg: JwtConfig): Promise
 }
 
 /** Short-lived signed state for the OIDC redirect round-trip (CSRF protection). */
-export async function signOidcState(cfg: JwtConfig): Promise<string> {
+/**
+ * `binding` is the SHA-256 of the nonce cookie set on the redirect that starts
+ * sign-in (auth/integrationBinding.ts); the callback refuses a state its
+ * browser holds no nonce for.
+ */
+export async function signOidcState(cfg: JwtConfig, binding?: string): Promise<string> {
   return new SignJWT({
     purpose: 'oidc-state',
+    ...(binding ? { n: binding } : {}),
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuer(cfg.issuer)
@@ -106,9 +112,10 @@ export async function signOidcState(cfg: JwtConfig): Promise<string> {
     .sign(key(cfg.secret));
 }
 
-export async function verifyOidcState(state: string, cfg: JwtConfig): Promise<void> {
+export async function verifyOidcState(state: string, cfg: JwtConfig): Promise<{ binding?: string }> {
   const { payload } = await jwtVerify(state, key(cfg.secret), { issuer: cfg.issuer });
   if (payload.purpose !== 'oidc-state') throw new Error('invalid state');
+  return typeof payload.n === 'string' ? { binding: payload.n } : {};
 }
 
 // ── Third-party OAuth state (accounting §23, cap-table sync, HRIS) ───────────
