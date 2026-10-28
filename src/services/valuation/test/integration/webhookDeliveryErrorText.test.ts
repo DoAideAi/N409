@@ -57,7 +57,7 @@ describe.skipIf(!dbUp)('what the partner delivery log says a failure was', () =>
   beforeAll(async () => {
     ctx = await setupTestApp();
     const partnerId = await seedPartner(ctx, `Webhook Firm ${Date.now()}`);
-    const admin = await seedUser(ctx, { roles: ['org_admin'], partnerId });
+    const admin = await seedUser(ctx, { roles: ['partner'], partnerId });
     const webhook = await createWebhook(ctx.pool, {
       partnerId,
       url: 'https://receiver.example.com/n409',
