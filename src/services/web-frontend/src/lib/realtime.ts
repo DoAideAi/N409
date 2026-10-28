@@ -110,8 +110,29 @@ export function useValuationStream(valuationId: string): ValuationStream {
      * widening is about.
      */
     let failures = 0;
+    /**
+     * Closed while the tab is hidden, and reopened when it is shown.
+     *
+     * An open stream is not free on the server: the route re-authorizes it on a
+     * timer (two queries a minute, per stream) and the hub counts it against
+     * the caller's stream allowance. A backgrounded tab held all of that for as
+     * long as it stayed open — and kept its reader listed as "viewing" a page
+     * nobody was looking at, which is the one thing the presence badges are
+     * for. The reopen is an ordinary reconnect, so the comment tick bump below
+     * re-fetches whatever was said while it was hidden. Same rule as `usePoll`.
+     */
+    let paused = false;
+    /** A stream that ended for good (a 401/403/404, a revocation) stays ended. */
+    let ended = false;
+    /**
+     * Which `connect` is current. An aborted stream finishes asynchronously, so
+     * hiding and showing the tab quickly would otherwise let the old attempt's
+     * tail schedule a retry beside the new one — two streams for one tab.
+     */
+    let generation = 0;
 
     const connect = async () => {
+      const mine = ++generation;
       controller = new AbortController();
       /** A status that says not to come back, as opposed to a dropped socket. */
       let terminal = false;
@@ -184,7 +205,7 @@ export function useValuationStream(valuationId: string): ValuationStream {
       } catch {
         // aborted on unmount, or a dropped connection — handled below
       }
-      if (stopped) return;
+      if (stopped || mine !== generation) return;
       // Off the stream, for whatever reason. Presence is a fact only the open
       // socket knows: the hub broadcasts the room on every join and leave and
       // never replays, so a list held across a disconnect is the membership of
@@ -193,15 +214,36 @@ export function useValuationStream(valuationId: string): ValuationStream {
       // clear those badges. Clearing costs at most a few seconds of an empty
       // list, because the reconnect's own join broadcasts the room back.
       setViewers([]);
-      if (!terminal) {
+      if (terminal) ended = true;
+      if (!terminal && !paused) {
         failures += 1;
         retry = setTimeout(() => void connect(), serverWaitMs ?? streamBackoffMs(failures));
       }
     };
 
-    void connect();
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        if (paused || ended) return;
+        paused = true;
+        generation += 1;
+        if (retry) clearTimeout(retry);
+        retry = undefined;
+        controller?.abort();
+        setViewers([]);
+        return;
+      }
+      if (!paused || ended) return;
+      paused = false;
+      failures = 0;
+      void connect();
+    };
+
+    if (document.visibilityState === 'hidden') paused = true;
+    else void connect();
+    document.addEventListener('visibilitychange', onVisibility);
     return () => {
       stopped = true;
+      document.removeEventListener('visibilitychange', onVisibility);
       controller?.abort();
       if (retry) clearTimeout(retry);
       setViewers([]);

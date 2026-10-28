@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 import { act, render, renderHook, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { AuthProvider } from '../src/lib/auth';
@@ -318,6 +318,74 @@ describe('useValuationStream', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  describe('while the tab is hidden', () => {
+    function setVisibility(state: 'hidden' | 'visible') {
+      Object.defineProperty(document, 'visibilityState', { value: state, configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    }
+
+    afterEach(() => {
+      Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+    });
+
+    it('closes the stream, drops presence, and schedules no retry', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        const live = sseResponse();
+        const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(live.res);
+        const { result } = renderHook(() => useValuationStream('v1'));
+        await act(async () => live.push(presence('Ana')));
+        await waitFor(() => expect(result.current.viewers).toHaveLength(1));
+        const signal = fetchMock.mock.calls[0]![1]!.signal!;
+
+        await act(async () => setVisibility('hidden'));
+        expect(signal.aborted).toBe(true);
+        expect(result.current.viewers).toEqual([]);
+
+        // A dropped stream would be back in three seconds; a hidden one is not.
+        await act(async () => {
+          vi.advanceTimersByTime(60_000);
+        });
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('reopens when shown, and re-reads the thread for what it missed', async () => {
+      const first = sseResponse();
+      const second = sseResponse();
+      const fetchMock = vi
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValueOnce(first.res)
+        .mockResolvedValueOnce(second.res);
+      const { result } = renderHook(() => useValuationStream('v1'));
+      await act(async () => first.push(presence('Ana')));
+      await waitFor(() => expect(result.current.viewers).toHaveLength(1));
+      const tickBefore = result.current.commentTick;
+
+      await act(async () => setVisibility('hidden'));
+      await act(async () => setVisibility('visible'));
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(result.current.commentTick).toBe(tickBefore + 1));
+
+      // One hide-and-show is one reopened stream, not a reopen plus a retry.
+      await act(async () => second.push(presence('Ana')));
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not open a stream for a tab that starts hidden until it is shown', async () => {
+      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+      const live = sseResponse();
+      const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(live.res);
+      renderHook(() => useValuationStream('v1'));
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      await act(async () => setVisibility('visible'));
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    });
   });
 
   it('opens no stream at all without a valuation id', () => {
