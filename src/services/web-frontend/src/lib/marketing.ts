@@ -378,12 +378,6 @@ export const COMPARISONS: ComparisonRef[] = [
   { slug: 'scalar', competitor: 'Scalar' },
 ];
 
-// ── Compare provider hub (gap #30) ────────────────────────────────────────────
-// The overview page at /compare/409a-valuation-providers categorises the market
-// into model types and links out to each individual comparison page above.
-
-export const HERO_KINDS = ['409A', 'ASC 820', 'Gift & Estate', 'EMI', 'QSBS', 'ESOP'];
-
 /**
  * Landing-page stat strip. Every figure here is a *verifiable product fact* —
  * the catalogue's own floor price, our published draft SLA, the number of
@@ -402,23 +396,6 @@ export const STATS = [
   { value: `$${(MIN_PRODUCT_PRICE_CENTS / 100).toLocaleString('en-US')}`, label: 'flat, from' },
 ];
 
-export const HOW_IT_WORKS = [
-  {
-    step: '01',
-    title: 'Onboarding form',
-    body: 'Questions, documents, and accounting sync — about 15 minutes.',
-  },
-  {
-    step: '02',
-    title: 'Draft report',
-    body: 'Draft in 24 hours. Ask questions, see how every number was built.',
-  },
-  {
-    step: '03',
-    title: 'Final delivery',
-    body: 'Dual-signed, audit-defensible report — 7 days standard, 1 day express.',
-  },
-];
 
 export const ACCOUNTING_PROVIDERS = ['QuickBooks', 'Xero', 'FreshBooks', 'Oracle NetSuite', 'Sage', 'Wave'];
 

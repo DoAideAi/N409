@@ -246,8 +246,3 @@ export function invalidateBranding(
   if (keys.key) brandingCache.delete(`key:${keys.key}`);
   if (keys.subdomain) brandingCache.delete(`subdomain:${keys.subdomain}`);
 }
-
-/** Empties the cache. For tests. */
-export function clearBrandingCache(): void {
-  brandingCache.clear();
-}

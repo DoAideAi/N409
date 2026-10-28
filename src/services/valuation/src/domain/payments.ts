@@ -138,11 +138,6 @@ export function disputeStatusOf(stripeStatus: unknown): DisputeStatus {
  */
 export const DISPUTE_TERMINAL_STATUSES = ['won', 'lost'] as const;
 
-/** Is this dispute verdict final? See {@link DISPUTE_TERMINAL_STATUSES}. */
-export function isTerminalDisputeStatus(status: string): boolean {
-  return (DISPUTE_TERMINAL_STATUSES as readonly string[]).includes(status);
-}
-
 export interface RefundState {
   /** Cumulative cents refunded against the charge, clamped to [0, amount]. */
   refundedCents: number;
