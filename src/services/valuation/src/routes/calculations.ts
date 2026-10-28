@@ -1,7 +1,7 @@
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import { z } from 'zod';
-import { isUlid, problems } from '@n409/shared';
+import { isUlid, logUnretried, problems } from '@n409/shared';
 import { isOps, type Principal } from '../auth/rbac.js';
 import { findValuationById, type ValuationRow } from '../repos/valuations.js';
 import { findParams, type ValuationParamsRow } from '../repos/params.js';
@@ -383,6 +383,8 @@ export async function runCalculation(
      * minutes of engine round trips after it.
      */
     beforePersist?: () => Promise<void>;
+    /** Where a failed run that could not be recorded is reported. */
+    log?: FastifyBaseLogger;
   },
 ): Promise<CalculationRow> {
   /*
@@ -469,24 +471,43 @@ export async function runCalculation(
     );
   } catch (err) {
     if (err instanceof InternalServiceError) {
-      await createCalculation(
-        deps.pool,
-        {
-          valuationId: args.valuation.id,
-          engineVersion: 'unknown',
-          status: 'failed',
-          inputs: payload,
-          // `describeForUser`, not `err.message`: this column is drawn straight
-          // onto the calculation list and the inspector, so an opaque upstream
-          // body stored here is a traceback in front of a client, redrawn every
-          // time the history is listed. The full error is in the log line the
-          // caller writes around this.
-          error: describeForUser(err),
-          diagnostics: err.issues,
-          createdBy: args.createdBy,
-        },
-        args.actor,
-      );
+      /*
+       * The record of the refusal is bookkeeping about the failure, not the
+       * failure. Awaited bare, a write that could not land — the engagement
+       * purged while the engine had the request, the pool exhausted by the
+       * same outage that failed the call — replaced the engine's error with
+       * its own, and the caller was told to run the calculation again in a few
+       * minutes instead of which input the engine refused.
+       */
+      try {
+        await createCalculation(
+          deps.pool,
+          {
+            valuationId: args.valuation.id,
+            engineVersion: 'unknown',
+            status: 'failed',
+            inputs: payload,
+            // `describeForUser`, not `err.message`: this column is drawn straight
+            // onto the calculation list and the inspector, so an opaque upstream
+            // body stored here is a traceback in front of a client, redrawn every
+            // time the history is listed. The full error is in the log line the
+            // caller writes around this.
+            error: describeForUser(err),
+            diagnostics: err.issues,
+            createdBy: args.createdBy,
+          },
+          args.actor,
+        );
+      } catch (recordErr) {
+        if (args.log) {
+          logUnretried(
+            args.log,
+            recordErr,
+            { valuationId: args.valuation.id },
+            'the engine refused this calculation and the failed run could not be recorded',
+          );
+        }
+      }
     }
     throw err;
   }
@@ -571,6 +592,7 @@ export function registerCalculationRoutes(
         baselineId,
         createdBy: principal.id,
         actor: actorFor(principal),
+        log: req.log,
       });
       return reply.status(201).send({ calculation });
     } catch (err) {

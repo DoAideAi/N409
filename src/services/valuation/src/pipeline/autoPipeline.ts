@@ -409,7 +409,7 @@ async function executeRun(
     const inputs = await buildCalculationInputs(deps.pool, valuation.id, paramsRow, {}, deps.log);
     await runCalculation(
       { pool: deps.pool, engineUrl: deps.engineUrl },
-      { valuation, paramsRow, inputs, createdBy: triggeredBy, actor },
+      { valuation, paramsRow, inputs, createdBy: triggeredBy, actor, log: deps.log },
     );
 
     await setPipelineRunStatus(deps.pool, run, 'ready', { actor });

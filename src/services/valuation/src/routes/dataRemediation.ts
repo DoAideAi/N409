@@ -179,6 +179,7 @@ export function registerDataRemediationRoutes(
           inputs,
           createdBy: principal.id,
           actor: { actorType: 'engine', actorId: principal.id, source: 'engine-wrapper' },
+          log: req.log,
           /*
            * ASKED AGAIN, PER ROW, IN FRONT OF THE WRITE (R411, methodology M4).
            *
