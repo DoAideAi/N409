@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { api, apiDownload, describeActionFailure, describeLoadFailure } from '../lib/api';
 import { useLatestOnly } from '../lib/useLatestOnly';
+import { clampedPage, pageFromParam } from '../lib/pageParam';
 import { useClearOnChange } from '../lib/useClearOnChange';
 import { email as emailRule, password as passwordRule, useFormValidation } from '../lib/useFormValidation';
 import { PASSWORD_HINT } from '../lib/passwordPolicy';
@@ -223,7 +224,18 @@ export function AdminUsersPage() {
   const role = params.get('role') ?? '';
   const partner = params.get('partner') ?? '';
   const showDeleted = params.get('deleted') === '1';
-  const page = Math.max(1, Number(params.get('page') ?? '1') || 1);
+  const page = pageFromParam(params.get('page'));
+
+  // A page past the end of the list (a bookmark on a list that has since
+  // shrunk) is moved to the last page that exists — see `clampedPage`.
+  useEffect(() => {
+    if (!data) return;
+    const target = clampedPage(page, data.total, PER_PAGE);
+    if (target === null) return;
+    const next = new URLSearchParams(params);
+    next.set('page', String(target));
+    setParams(next, { replace: true });
+  }, [data, page, params, setParams]);
 
   /*
    * Five controls feed this one address — the search box, the role and partner

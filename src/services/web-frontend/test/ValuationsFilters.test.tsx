@@ -498,6 +498,21 @@ describe('ValuationsPage — pagination and empty states', () => {
     expect(screen.getByRole('button', { name: 'Next →' })).toBeDisabled();
   });
 
+  it('moves a bookmarked page past the end back to the last page', async () => {
+    // Two rows fit on one page, so no pager is drawn — without the clamp the
+    // reader sat on an empty page 5 with nothing to click.
+    const calls = mockApi({ total: 2 });
+    renderPage('/valuations?page=5');
+    await waitFor(() => expect(lastListQuery(calls).get('page')).toBe('1'));
+  });
+
+  it('sends a fractional page as a whole one', async () => {
+    const calls = mockApi({ total: 60 });
+    renderPage('/valuations?page=2.5');
+    await screen.findAllByText('Acme Corp');
+    expect(lastListQuery(calls).get('page')).toBe('2');
+  });
+
   it('reads a page number the URL cannot mean as page one', async () => {
     const calls = mockApi({ total: 60 });
     renderPage('/valuations?page=notanumber');

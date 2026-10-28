@@ -17,6 +17,7 @@ import type {
 } from '../lib/types';
 import { tabListKeyDown, tabProps } from '../lib/rovingFocus';
 import { useLatestOnly } from '../lib/useLatestOnly';
+import { clampedPage, pageFromParam } from '../lib/pageParam';
 import type { TagCatalogueCategory } from '../lib/tags';
 import {
   Button,
@@ -193,7 +194,7 @@ export function ValuationsPage() {
   const bucket = params.get('bucket') ?? '';
   const group = params.get('group') ?? '';
   const sortParam = params.get('sort') ?? '';
-  const page = Math.max(1, Number(params.get('page') ?? '1') || 1);
+  const page = pageFromParam(params.get('page'));
 
   // Everything except pagination/tab/sort, encoded once and reused by list/counts/export.
   const filterQuery = useMemo(() => {
@@ -416,6 +417,16 @@ export function ValuationsPage() {
   };
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / PER_PAGE)) : 1;
+  // A page past the end of the list (a bookmark on a list that has since
+  // shrunk) is moved to the last page that exists — see `clampedPage`.
+  useEffect(() => {
+    if (!data) return;
+    const target = clampedPage(page, data.total, PER_PAGE);
+    if (target === null) return;
+    const next = new URLSearchParams(params);
+    next.set('page', String(target));
+    setParams(next, { replace: true });
+  }, [data, page, params, setParams]);
   const allOnPageSelected =
     Boolean(data?.valuations.length) && data!.valuations.every((v) => selected.has(v.id));
 
