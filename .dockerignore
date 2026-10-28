@@ -1,3 +1,14 @@
+# Patterns here are anchored to the context root unless they start with
+# **/ — `dist/` matches ./dist and nothing under src/. The build-artifact,
+# coverage and virtualenv lines below were written that way and so missed
+# every one of the directories they were for: each service's dist/,
+# node_modules/, coverage/ and *.tsbuildinfo, and the ai and engine-wrapper
+# virtualenvs, all went to the daemon. The TypeScript images' build stages
+# COPY whole service directories, so a host dist/ plus tsbuildinfo landed in
+# the image, where `tsc -b` can judge the project up to date from them and
+# skip the compile — shipping whatever the host last built. CI builds from a
+# clean checkout, which is why it never showed there.
+
 # Version control
 .git
 .gitignore
@@ -22,29 +33,34 @@ keys/
 *.swp
 
 # Test and coverage artifacts
-coverage/
-.nyc_output/
-.pytest_cache/
-.coverage
-coverage.xml
+**/coverage/
+**/.nyc_output/
+**/.pytest_cache/
+**/.coverage
+**/coverage.xml
 mutants/
 .mutmut-cache
 
 # Build artifacts (rebuilt inside the image)
-dist/
-build/
-node_modules/
+**/dist/
+**/build/
+**/node_modules/
+**/*.tsbuildinfo
 
 # Python virtual environments (rebuilt inside the image)
-.venv/
-__pycache__/
+**/.venv/
+**/__pycache__/
 
 # Claude Code
 .claude/
 
 # Scratch / temp
-scratchpad/
+**/scratchpad/
 tmp/
+
+# Local data and binary docs at the root
+data/
+*.docx
 
 # Docker
 Dockerfile*
