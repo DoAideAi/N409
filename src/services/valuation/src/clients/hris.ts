@@ -162,9 +162,24 @@ export async function refreshTokens(
   });
 }
 
+/**
+ * A provider's figure, or null when it is not one (C102 M6).
+ *
+ * `Number('')` is 0, so a provider writing an unset field as an empty string —
+ * `"cliff": ""` — imported a grant with *no* cliff where an absent field gets
+ * the 48/12/1 default; `"months": ""` vested the whole grant on day one. And
+ * `Number` reads `0x10` as 16. A blank is absent and the figure must be a
+ * decimal once the currency sign and separators are gone.
+ */
+const PROVIDER_DECIMAL = /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
 const toNum = (v: unknown): number | null => {
-  const n = typeof v === 'string' ? Number(v.replace(/[$,\s]/g, '')) : typeof v === 'number' ? v : NaN;
-  return Number.isFinite(n) ? n : null;
+  if (typeof v === 'string') {
+    const digits = v.replace(/[$,\s]/g, '');
+    if (!PROVIDER_DECIMAL.test(digits)) return null;
+    const n = Number(digits);
+    return Number.isFinite(n) ? n : null;
+  }
+  return typeof v === 'number' && Number.isFinite(v) ? v : null;
 };
 /**
  * A provider's date, at day resolution, or null when it is not a day.

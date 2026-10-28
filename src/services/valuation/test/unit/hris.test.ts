@@ -59,6 +59,36 @@ describe('HRIS roster + grant mapping (feature 11)', () => {
     });
   });
 
+  it('reads a blank provider field as absent, not as zero (C102 M6)', () => {
+    const { grants } = mapEmployees({
+      people: [
+        {
+          id: 'p1',
+          name: 'Bob',
+          grants: [
+            {
+              grantId: 'gx',
+              shares: '1,000',
+              issueDate: '2026-01-15',
+              strikePrice: '$1.50',
+              vesting: { months: '', cliff: ' ', frequency: '' },
+            },
+            { grantId: 'gy', shares: '0x10', issueDate: '2026-01-15' },
+          ],
+        },
+      ],
+    });
+    expect(grants).toHaveLength(1);
+    expect(grants[0]).toMatchObject({
+      external_id: 'gx',
+      options_count: 1000,
+      exercise_price: 1.5,
+      vesting_months: 48,
+      cliff_months: 12,
+      frequency_months: 1,
+    });
+  });
+
   it('drops grants missing an id, date, or a positive option count', () => {
     const { grants } = mapEmployees({
       employees: [
