@@ -10,9 +10,10 @@ dependencies = [
     "fastapi>=0.115",
     "uvicorn>=0.32",
     "httpx>=0.28",
-    # 6.15.0 is the fix for PYSEC-2026-3655/3656, both reachable through the
-    # text extraction `documents.py` runs over uploaded files.
-    "pypdf>=6.15.0",
+    # 6.15.0 fixed PYSEC-2026-3655/3656; 6.21.2 (R448) is the first release
+    # clear of the later batch too. All reachable through the text extraction
+    # `documents.py` runs over uploaded files.
+    "pypdf>=6.21.2",
     # Imported directly by app code (pydantic in app/main.py, starlette in
     # app/errors.py, anyio in app/limits.py) and, before R195, declared nowhere.
     "pydantic>=2.9",
@@ -22,6 +23,9 @@ dependencies = [
     # its preflight gate using this venv's interpreter. It reached the tool only
     # as a pytest transitive, and pytest is not on the deploy host.
     "packaging>=24.0",
+    # Security floor on a transitive (httpx/httpcore), not an import: see the
+    # certifi block in requirements.txt (PYSEC-2026-4320).
+    "certifi>=2026.10.18",
 ]
 
 [dependency-groups]
