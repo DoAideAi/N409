@@ -288,11 +288,25 @@ describe('the three bugs this was written for', () => {
   });
 
   it('keeps the muted badge tone above the line in both themes', () => {
-    expect(contrast(tone(LIGHT, 'ink-400'), tone(LIGHT, 'paper-200'))).toBeLessThan(4.5); // was shipped
     for (const tokens of [LIGHT, DARK]) {
       expect(contrast(tone(tokens, 'ink-500'), tone(tokens, 'paper-200'))).toBeGreaterThanOrEqual(4.5);
     }
     // And no call site kept the old tone.
     expect(PAIRS.filter((p) => p.bg === 'paper-200' && p.fg === 'ink-400')).toEqual([]);
+  });
+
+  /*
+   * ink-400 itself, against every ground muted text is drawn on — the case the
+   * pair census cannot see, because the ground comes from a parent element. It
+   * measured 4.35:1 on paper-200 in light mode and 4.08:1 on paper-300 in dark
+   * mode, at ~980 call sites.
+   */
+  it.each([
+    ['light', LIGHT, ['paper-50', 'paper-100', 'paper-200', 'surface']],
+    ['dark', DARK, ['paper-50', 'paper-100', 'paper-200', 'paper-300', 'surface']],
+  ] as const)('keeps muted ink-400 text legible on every %s ground', (_name, tokens, grounds) => {
+    for (const ground of grounds) {
+      expect(contrast(tone(tokens, 'ink-400'), tone(tokens, ground)), ground).toBeGreaterThanOrEqual(4.5);
+    }
   });
 });

@@ -28,7 +28,12 @@
    * app rendered at full body weight. Same story for the five steps below.
    */
   --color-ink-500: #445376;
-  --color-ink-400: #5d6c8f;
+  /* Was #5d6c8f: 4.35:1 on paper-200, the card and table-head ground. The
+     contrast census caught the call sites that *name* both colours and moved
+     them to ink-500, but ink-400 is the muted text tone at ~980 sites and most
+     of them inherit their ground from a parent card — out of the census's
+     reach by design. One step darker clears 4.5:1 on every light ground. */
+  --color-ink-400: #5a688a;
   --color-ink-300: #8b97b3;
   --color-ink-200: #b9c1d4;
 
@@ -175,7 +180,8 @@
   --color-ink-700: #b8b8be;
   --color-ink-600: #9898a0;
   --color-ink-500: #8a8a94;
-  --color-ink-400: #7c7c8a;
+  /* Was #7c7c8a: 4.39:1 on paper-200 and 4.08:1 on paper-300 in this theme. */
+  --color-ink-400: #858594;
   --color-ink-300: #484850;
   --color-ink-200: #383840;
 
