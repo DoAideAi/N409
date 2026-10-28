@@ -212,6 +212,14 @@ describe('ClientIntakePage', () => {
     expect(screen.queryByText('Meridian Valuation')).not.toBeInTheDocument();
   });
 
+  it('says the service was unreachable, not the browser’s “Failed to fetch”', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'));
+    render(<ClientIntakePage />);
+
+    expect(await screen.findByText(/could not be reached — check your connection/)).toBeInTheDocument();
+    expect(screen.queryByText(/Failed to fetch/)).not.toBeInTheDocument();
+  });
+
   it('writes answers back without a save button, sending only what changed', async () => {
     const calls = mockPortal();
     const user = userEvent.setup();

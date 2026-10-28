@@ -105,12 +105,28 @@ const KEEPALIVE_MAX_BYTES = 60_000;
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
+/**
+ * What a rejected `fetch` means here. Every caller prints `err.message`, and
+ * the browser's own message for an unreachable server is "Failed to fetch"
+ * (Chrome), "Load failed" (Safari) or "NetworkError when attempting to fetch
+ * resource." (Firefox) — which is what a client who lost signal mid-form read
+ * as the page's whole explanation.
+ */
+const UNREACHABLE =
+  'The questionnaire service could not be reached — check your connection. Your answers are still ' +
+  'on this page and nothing has been lost; try again in a moment.';
+
 const post = async <T,>(path: string, body: unknown): Promise<T> => {
-  const res = await fetch(path, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+  let res: Response;
+  try {
+    res = await fetch(path, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new Error(UNREACHABLE);
+  }
   if (!res.ok) {
     const problem = (await res.json().catch(() => ({}))) as { detail?: string };
     /*
