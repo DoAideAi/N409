@@ -1,5 +1,5 @@
 import Fastify, { type FastifyInstance } from 'fastify';
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   BACKLOG_WINDOW_HOURS,
   claimRetryableDeliveries,
@@ -159,6 +159,24 @@ describe.skipIf(!dbUp)('two sweepers holding the same delivery', () => {
     const after = await readRow(row.id);
     expect(after.status).toBe('pending');
     expect(after.attempts).toBe(0);
+  });
+
+  it.each([200, 500, 302])('releases the receiver body it never reads (status %i)', async (status) => {
+    const cancel = vi.fn(async () => undefined);
+    const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+      const res = new Response('a body nobody reads', { status, headers: status === 302 ? { location: '/x' } : {} });
+      vi.spyOn(res.body!, 'cancel').mockImplementation(cancel);
+      return res;
+    });
+    try {
+      const { rows } = await ctx.pool.query('SELECT * FROM partner_webhooks WHERE id = $1', [webhookId]);
+      await deliverToWebhook({ pool: ctx.pool, allowPrivateTargets: true }, rows[0]! as never, 'webhook.test', {
+        event: 'webhook.test',
+      });
+    } finally {
+      spy.mockRestore();
+    }
+    expect(cancel).toHaveBeenCalledTimes(1);
   });
 
   describe('through the delivery path, with a receiver that stalls', () => {

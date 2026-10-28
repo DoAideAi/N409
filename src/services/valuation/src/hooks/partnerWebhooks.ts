@@ -176,6 +176,11 @@ async function postDelivery(
       signal: AbortSignal.timeout(DELIVERY_TIMEOUT_MS),
     });
     const elapsedMs = performance.now() - startedAt;
+    // Nothing here reads the receiver's body — the status is the whole answer.
+    // Left unread it holds the socket until the abort timer fires, and a sweep
+    // posts up to a batch of these back to back, so a slow-bodied receiver kept
+    // that many connections open at once. Same release R410 gave Stripe.
+    await res.body?.cancel().catch(() => undefined);
     if (res.status >= 300 && res.status < 400) {
       recordPartnerWebhookDelivery(event, 'redirected', elapsedMs);
       return {
