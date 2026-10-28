@@ -113,20 +113,24 @@ PASSWORD="$($OPENSSL rand -hex 32)"
 # this script guessing at postgres's escaping rules.
 if [[ "$(psql_q "SELECT 1 FROM pg_roles WHERE rolname = '$ROLE'" | tr -d '[:space:]')" == "1" ]]; then
   log "$ROLE exists — resetting its password and confirming its privileges"
-  $PSQL -qtA -v role="$ROLE" -v pw="$PASSWORD" \
-    -c "ALTER ROLE :\"role\" WITH LOGIN CREATEDB PASSWORD :'pw'" >/dev/null
+  $PSQL -qtA -v ON_ERROR_STOP=1 -v role="$ROLE" -v pw="$PASSWORD" >/dev/null <<'SQL'
+ALTER ROLE :"role" WITH LOGIN CREATEDB PASSWORD :'pw';
+SQL
 else
   log "creating $ROLE"
-  $PSQL -qtA -v role="$ROLE" -v pw="$PASSWORD" \
-    -c "CREATE ROLE :\"role\" WITH LOGIN CREATEDB PASSWORD :'pw'" >/dev/null
+  $PSQL -qtA -v ON_ERROR_STOP=1 -v role="$ROLE" -v pw="$PASSWORD" >/dev/null <<'SQL'
+CREATE ROLE :"role" WITH LOGIN CREATEDB PASSWORD :'pw';
+SQL
 fi
 
 # Stated rather than assumed. The whole argument for a separate role is that it
 # holds CREATEDB *and nothing else*, so the absence of the rest is part of what
 # is being provisioned — a role that picked up SUPERUSER from an earlier
 # experiment would otherwise pass every check this script makes.
-$PSQL -qtA -v role="$ROLE" \
-  -c "ALTER ROLE :\"role\" WITH NOSUPERUSER NOCREATEROLE NOREPLICATION NOBYPASSRLS NOINHERIT" >/dev/null
+# psql substitutes variables in stdin scripts, not in the -c SQL argument.
+$PSQL -qtA -v ON_ERROR_STOP=1 -v role="$ROLE" >/dev/null <<'SQL'
+ALTER ROLE :"role" WITH NOSUPERUSER NOCREATEROLE NOREPLICATION NOBYPASSRLS NOINHERIT;
+SQL
 
 # ── Write the env file ───────────────────────────────────────────────────────
 ENV_DIR="$(dirname "$ENV_FILE")"

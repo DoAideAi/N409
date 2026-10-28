@@ -44,6 +44,9 @@ function stubs(options: { roleExists?: boolean; clientAnswer?: string } = {}): v
       `printf 'super %s\\n' "$*" >> "$TRANSCRIPT"`,
       // Only the catalogue probe returns a row; the DDL statements say nothing.
       `[[ "$*" == *"FROM pg_roles WHERE rolname"* ]] && { ${exists ? 'echo 1' : 'true'}; exit 0; }`,
+      // psql does not expand :'variables' in -c; require stdin SQL for DDL.
+      `[[ "$*" == *"-c "* ]] && exit 1`,
+      'cat >> "$TRANSCRIPT"',
       'exit 0',
     ].join('\n') + '\n',
     { mode: 0o755 },
