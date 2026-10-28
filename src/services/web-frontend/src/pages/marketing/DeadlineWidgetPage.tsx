@@ -127,18 +127,20 @@ const EMBED_FAQ: FaqItem[] = [
 ];
 
 export function DeadlineWidgetPage() {
-  const [copied, setCopied] = useState(false);
+  // A refused clipboard is said, not swallowed — the code is on screen, so the
+  // failure label points the reader at selecting it by hand.
+  const [copied, setCopied] = useState<'copied' | 'failed' | null>(null);
   const origin = siteOrigin();
   const embedCode = `<iframe src="${origin}/tools/deadline-widget/embed" width="100%" height="520" style="border:none;border-radius:8px" title="409A valuation deadlines"></iframe>`;
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(embedCode);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setCopied('copied');
     } catch {
-      /* clipboard not available */
+      setCopied('failed');
     }
+    setTimeout(() => setCopied(null), 2500);
   };
 
   return (
@@ -194,8 +196,15 @@ export function DeadlineWidgetPage() {
             onClick={handleCopy}
             className="mt-3 cursor-pointer rounded-md border border-paper-300 bg-surface px-3 py-1.5 text-xs font-semibold text-ink-700 transition-colors hover:bg-paper-50"
           >
-            {copied ? 'Copied!' : 'Copy embed code'}
+            {copied === 'copied' ? 'Copied!' : copied === 'failed' ? 'Copy failed — select the code above' : 'Copy embed code'}
           </button>
+          <span className="sr-only" role="status" aria-live="polite">
+            {copied === 'copied'
+              ? 'Embed code copied to clipboard'
+              : copied === 'failed'
+                ? 'Could not copy — select the embed code and copy it manually'
+                : ''}
+          </span>
         </div>
       </section>
 

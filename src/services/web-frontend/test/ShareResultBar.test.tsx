@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ShareResultBar } from '../src/components/ShareResultBar';
 
@@ -54,5 +54,29 @@ describe('ShareResultBar', () => {
     const link = screen.getByText('WhatsApp').closest('a');
     expect(link?.getAttribute('href')).toContain('wa.me');
     expect(link?.getAttribute('target')).toBe('_blank');
+  });
+});
+
+describe('ShareResultBar — copy', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  function stubClipboard(writeText: () => Promise<void>) {
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+  }
+
+  it('confirms a copy, visibly and to assistive technology', async () => {
+    stubClipboard(() => Promise.resolve());
+    renderBar();
+    fireEvent.click(screen.getByRole('button', { name: /copy/i }));
+    expect(await screen.findByText('Copied!')).toBeTruthy();
+    expect(screen.getByRole('status')).toHaveTextContent('Copied to clipboard');
+  });
+
+  it('says so when the clipboard refuses, instead of doing nothing', async () => {
+    stubClipboard(() => Promise.reject(new DOMException('denied', 'NotAllowedError')));
+    renderBar();
+    fireEvent.click(screen.getByRole('button', { name: /copy/i }));
+    expect(await screen.findByText('Copy failed')).toBeTruthy();
+    expect(screen.getByRole('status')).toHaveTextContent('Could not copy to the clipboard');
   });
 });

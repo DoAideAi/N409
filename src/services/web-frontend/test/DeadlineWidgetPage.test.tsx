@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { DeadlineWidgetPage, DeadlineWidgetEmbed } from '../src/pages/marketing/DeadlineWidgetPage';
@@ -84,5 +84,18 @@ describe('DeadlineWidgetEmbed', () => {
   it('links back to readiness checker', () => {
     renderEmbed();
     expect(screen.getByText(/Check your 409A readiness/)).toBeTruthy();
+  });
+});
+
+describe('DeadlineWidgetPage — copy embed code', () => {
+  it('points at the visible code when the clipboard refuses', async () => {
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: () => Promise.reject(new DOMException('denied', 'NotAllowedError')) },
+      configurable: true,
+    });
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Copy embed code' }));
+    expect(await screen.findByText('Copy failed — select the code above')).toBeTruthy();
+    expect(screen.getByRole('status')).toHaveTextContent(/copy it manually/);
   });
 });

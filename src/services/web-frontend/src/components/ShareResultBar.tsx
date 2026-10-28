@@ -19,7 +19,10 @@ export function ShareResultBar({
   whatsappText,
   className = '',
 }: ShareResultBarProps) {
-  const [copied, setCopied] = useState(false);
+  // `failed` is said rather than swallowed: clipboard access is refused on an
+  // insecure origin or a denied permission, and a Copy button that does
+  // nothing at all reads as broken.
+  const [copied, setCopied] = useState<'copied' | 'failed' | null>(null);
   const origin = siteOrigin();
   const pageUrl = `${origin}${window.location.pathname}`;
   const linkedInUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(pageUrl)}`;
@@ -32,11 +35,11 @@ export function ShareResultBar({
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(`${text}\n\n${pageUrl}`);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setCopied('copied');
     } catch {
-      /* clipboard not available */
+      setCopied('failed');
     }
+    setTimeout(() => setCopied(null), 2500);
   };
 
   return (
@@ -82,8 +85,11 @@ export function ShareResultBar({
           <rect x="9" y="9" width="13" height="13" rx="2" />
           <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
         </svg>
-        {copied ? 'Copied!' : 'Copy'}
+        {copied === 'copied' ? 'Copied!' : copied === 'failed' ? 'Copy failed' : 'Copy'}
       </button>
+      <span className="sr-only" role="status" aria-live="polite">
+        {copied === 'copied' ? 'Copied to clipboard' : copied === 'failed' ? 'Could not copy to the clipboard' : ''}
+      </span>
     </div>
   );
 }
