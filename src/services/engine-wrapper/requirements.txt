@@ -31,3 +31,14 @@ anyio>=4.14.2
 # pytest is not installed on the deploy host; resolving this file alone brings
 # 34 distributions and `packaging` is not among them.
 packaging>=24.0
+
+# Not imported here — security floors on transitives (R448). Both arrive through
+# yfinance's HTTP stack (requests, curl_cffi), and deploy.sh's `pip install -r`
+# never upgrades an already-satisfied transitive, so without a declared floor the
+# host keeps whatever it was first built with. See the certifi block in
+# ../ai/requirements.txt for the longer version.
+#
+#   urllib3   PYSEC-2026-4175, -4176, -4177 — fixed in 2.8.0
+#   certifi   PYSEC-2026-4320              — fixed in 2026.10.18
+urllib3>=2.8.0
+certifi>=2026.10.18

@@ -13,7 +13,12 @@ httpx>=0.28
 # infra/deploy.sh reinstalls a service's venv only when its requirements.txt
 # changes (see the PREV_SHA diff in section 5), so raising this number is also
 # the thing that schedules the reinstall that retires the vulnerable build.
-pypdf>=6.15.0
+#
+# Raised again to 6.21.2 in R448: 6.15.0 through 6.21.1 carry a further fourteen
+# advisories (PYSEC-2026-4155..4158, CVE-2026-113786..113795, CVE-2026-115572,
+# -115580, -115585), the same family of crafted-PDF resource exhaustion reached
+# through the same upload path. 6.21.2 is the first release clear of all of them.
+pypdf>=6.21.2
 
 # Imported directly by app code, and until R195 declared by nobody.
 #
@@ -50,3 +55,12 @@ anyio>=4.14.2
 # under deploy.sh's "the host's venv does not satisfy its requirements.txt",
 # which is not what went wrong and does not say what to install.
 packaging>=24.0
+
+# Not imported here — a security floor on a transitive, and the reason it has to
+# be written down is the one the pypdf block gives. certifi arrives through httpx
+# and httpcore; `pip install -r` without --upgrade leaves an already-satisfied
+# transitive exactly where it was, so the host would hold the CA bundle it was
+# first built with forever. 2026.10.18 is the fix for PYSEC-2026-4320. Declaring
+# the floor is what makes deploy.sh reinstall and check_installed_deps.py refuse
+# a venv still below it.
+certifi>=2026.10.18

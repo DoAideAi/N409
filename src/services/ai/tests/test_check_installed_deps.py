@@ -235,13 +235,40 @@ def test_the_shipped_requirements_files_all_parse():
 
 
 def test_the_ai_service_requires_a_patched_pypdf():
-    """Pins the fix for PYSEC-2026-3655/3656 so a later edit cannot quietly undo it.
+    """Pins the fix for PYSEC-2026-3655/3656 and the R448 batch so a later edit
+    cannot quietly undo it.
 
-    Both are resource-exhaustion bugs in text extraction, which `documents.py`
+    All are resource-exhaustion bugs in text extraction, which `documents.py`
     runs over client-uploaded files — so the floor is load-bearing, not hygiene.
+    6.21.1 is the last release still carrying one of them (CVE-2026-115572).
     """
     path = REPO_ROOT / "src" / "services" / "ai" / "requirements.txt"
     requirements, _ = mod.parse_requirements(path)
     pypdf = next(r for r in requirements if r.name == "pypdf")
     assert not pypdf.specifier.contains("6.14.2", prereleases=True)
-    assert pypdf.specifier.contains("6.15.0", prereleases=True)
+    assert not pypdf.specifier.contains("6.21.1", prereleases=True)
+    assert pypdf.specifier.contains("6.21.2", prereleases=True)
+
+
+@pytest.mark.parametrize(
+    ("service", "name", "vulnerable", "patched"),
+    [
+        ("ai", "certifi", "2026.6.17", "2026.10.18"),
+        ("engine-wrapper", "certifi", "2026.6.17", "2026.10.18"),
+        ("engine-wrapper", "urllib3", "2.7.0", "2.8.0"),
+    ],
+)
+def test_transitive_security_floors_are_declared(service, name, vulnerable, patched):
+    """The R448 floors on packages neither service imports.
+
+    They exist only so deploy.sh reinstalls and this tool refuses a host venv
+    still holding the vulnerable build — which is why a tidy-up that drops them
+    as "unused" has to fail somewhere. `vulnerable` is what the venvs held when
+    the advisories (PYSEC-2026-4320; PYSEC-2026-4175..4177) were found.
+    """
+    path = REPO_ROOT / "src" / "services" / service / "requirements.txt"
+    requirements, _ = mod.parse_requirements(path)
+    req = next((r for r in requirements if r.name == name), None)
+    assert req is not None, f"{service}: {name} floor was removed"
+    assert not req.specifier.contains(vulnerable, prereleases=True)
+    assert req.specifier.contains(patched, prereleases=True)
