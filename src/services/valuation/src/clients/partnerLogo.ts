@@ -23,6 +23,7 @@
 import { isIP } from 'node:net';
 import { lookup } from 'node:dns/promises';
 import { isPrivateAddress, isPrivateIpv4, isPrivateIpv6 } from '../domain/privateAddress.js';
+import { publicOnly } from './publicOnlyDispatcher.js';
 import { MAX_IMAGE_PIXELS, declaredImageSize } from '@n409/shared';
 import { readCappedBytes } from './deadline.js';
 
@@ -72,11 +73,11 @@ const defaultResolver: HostResolver = async (hostname) =>
  * and a AAAA record on `::1` would otherwise pass the check and connect to
  * loopback, since which family the runtime picks is not this function's call.
  *
- * There is a residual race — the name is resolved here and again by the socket,
- * and a DNS answer with a one-second TTL can differ between the two. Closing it
- * properly means pinning the connection to the address that was checked, which
- * `fetch` gives no way to do. The check still removes the whole class of
- * attacks that needs no timing at all, which is what a stored URL actually is.
+ * The name is resolved here and again by the socket, and an answer served with
+ * a zero TTL can differ between the two — chosen to, by whoever runs the DNS.
+ * The fetch therefore goes through the `publicOnly` dispatcher, whose lookup is
+ * the one the socket uses; this check stays for IP literals (which skip any
+ * lookup) and for the reason it names.
  */
 export async function isPublicHttpUrl(url: URL, resolve: HostResolver): Promise<boolean> {
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
@@ -166,7 +167,9 @@ export async function fetchPartnerLogo(
         // past it somebody redirected this process at the private network.
         return give('blocked_destination', { hop, host: url.hostname });
       }
-      res = await fetchImpl(url, { signal, redirect: 'manual' });
+      // The dispatcher re-checks the address the socket actually dials, which
+      // `isPublicHttpUrl` cannot: see clients/publicOnlyDispatcher.ts.
+      res = await fetchImpl(url, publicOnly({ signal, redirect: 'manual' }));
       if (res.status < 300 || res.status >= 400) break;
       const location = res.headers.get('location');
       if (!location) return give('redirect_without_location', { status: res.status });

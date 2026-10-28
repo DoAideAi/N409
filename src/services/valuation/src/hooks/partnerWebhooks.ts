@@ -3,6 +3,7 @@ import pLimit from 'p-limit';
 import type pg from 'pg';
 import type { FastifyBaseLogger } from 'fastify';
 import { describeTransportFailure, FLAGS, flagEnabled, logUnretried } from '@n409/shared';
+import { publicOnly } from '../clients/publicOnlyDispatcher.js';
 import { recordPartnerWebhookDelivery } from '../observability/partnerWebhookDeliveries.js';
 import {
   buildWebhookPayload,
@@ -160,7 +161,10 @@ async function postDelivery(
   // (observability/partnerWebhookDeliveries.ts).
   const startedAt = performance.now();
   try {
-    const res = await fetch(target.url, {
+    // `blockedTargetReason` resolved the host a moment ago; the socket resolves
+    // it again, and a zero-TTL answer can differ. `publicOnly` makes the
+    // socket's own lookup refuse a private address — clients/publicOnlyDispatcher.ts.
+    const res = await fetch(target.url, publicOnly({
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -174,7 +178,7 @@ async function postDelivery(
       // primitive through a 302 on a public host.
       redirect: 'manual',
       signal: AbortSignal.timeout(DELIVERY_TIMEOUT_MS),
-    });
+    }));
     const elapsedMs = performance.now() - startedAt;
     // Nothing here reads the receiver's body — the status is the whole answer.
     // Left unread it holds the socket until the abort timer fires, and a sweep
