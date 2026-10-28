@@ -135,6 +135,27 @@ describe.skipIf(!dbUp)('sensitivity routes', () => {
       expect(res.json().sensitivity.dlom).toBeCloseTo(0.4, 6);
     });
 
+    it('applies the stored DLOC as well as the DLOM, so the base cell is the conclusion', async () => {
+      await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/valuations/${valuationId}/params`,
+        headers: authHeader(ops.token),
+        payload: { dloc: 0.1 },
+      });
+      const without = (await grid({ ...GOOD_BODY, dlom: 0.3, dloc: 0 })).json().sensitivity;
+      const res = await grid({ ...GOOD_BODY, dlom: 0.3 });
+      expect(res.statusCode).toBe(200);
+      const s = res.json().sensitivity;
+      expect(s.dloc).toBeCloseTo(0.1, 6);
+      // A 10% control discount takes 10% off every cell, the base included.
+      expect(s.base.fmvPerShareCents).toBeCloseTo(without.base.fmvPerShareCents * 0.9, -1);
+    });
+
+    it('prefers an explicit DLOC in the body over the stored one', async () => {
+      const res = await grid({ ...GOOD_BODY, dloc: 0.2 });
+      expect(res.json().sensitivity.dloc).toBeCloseTo(0.2, 6);
+    });
+
     it('is operations-only', async () => {
       const res = await grid(GOOD_BODY, client.token);
       expect(res.statusCode).toBe(403);

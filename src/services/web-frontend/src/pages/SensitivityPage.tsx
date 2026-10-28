@@ -292,7 +292,7 @@ export function SensitivityPage() {
                 captioned "23%" — the reader could not reproduce a single cell
                 from the rate stated above it.
               */}
-              · DLOM {formatExactPercent(result.dlom)}
+              {result.dloc ? <>· DLOC {formatExactPercent(result.dloc)} </> : null}· DLOM {formatExactPercent(result.dlom)}
             </div>
             <label className="ml-auto flex items-center gap-1.5 text-xs font-semibold text-ink-600">
               <input

@@ -700,6 +700,8 @@ export interface SensitivityResult {
   /** Three-table dashboard: Term×Vol, RFR×Vol, RFR×Term. */
   tables?: { term_vol: AxisTable; rfr_vol: AxisTable; rfr_term: AxisTable };
   dlom: number;
+  /** The control discount applied with it — the engagement's own unless the request named one. */
+  dloc?: number;
   currency: string | null;
 }
 

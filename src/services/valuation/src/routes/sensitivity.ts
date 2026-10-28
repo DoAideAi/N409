@@ -58,6 +58,7 @@ const Body = z
     risk_free_rate: z.number().min(0).max(0.25),
     common_shares: z.number().int().positive().max(1e12),
     dlom: z.number().min(0).max(0.95).optional(),
+    dloc: z.number().min(0).max(0.95).optional(),
     volatility_steps: z.array(z.number().min(-0.9).max(2)).min(1).max(9).optional(),
     term_steps: z.array(z.number().min(-20).max(20)).min(1).max(9).optional(),
     rfr_steps: z.array(z.number().min(-0.25).max(0.25)).min(1).max(9).optional(),
@@ -85,13 +86,24 @@ export function registerSensitivityRoutes(
     if (!parsed.success) throw invalidBody('Invalid assumptions', parsed.error);
     const b = parsed.data;
 
+    /*
+     * Both discounts, because the conclusion applies both:
+     * `fmv_per_share = common_per_share × (1 − dloc) × (1 − dlom)`. This read
+     * only the DLOM, so on an engagement carrying a control discount every cell
+     * — the base case included — stood above the concluded value by
+     * 1/(1 − dloc), the same defect Exhibit F-2 had (`sensitivityBasis`). Each
+     * comes from the request when it names one and from the engagement's
+     * parameters when it does not.
+     */
     let dlom = b.dlom;
-    if (dlom === undefined) {
-      const { rows } = await deps.pool.query<{ dlom: string | null }>(
-        'SELECT dlom FROM valuation_params WHERE valuation_id = $1',
+    let dloc = b.dloc;
+    if (dlom === undefined || dloc === undefined) {
+      const { rows } = await deps.pool.query<{ dlom: string | null; dloc: string | null }>(
+        'SELECT dlom, dloc FROM valuation_params WHERE valuation_id = $1',
         [id],
       );
-      dlom = rows[0]?.dlom != null ? Number(rows[0].dlom) : 0;
+      dlom ??= rows[0]?.dlom != null ? Number(rows[0].dlom) : 0;
+      dloc ??= rows[0]?.dloc != null ? Number(rows[0].dloc) : 0;
     }
 
     const inputs = {
@@ -102,6 +114,7 @@ export function registerSensitivityRoutes(
       riskFreeRate: b.risk_free_rate,
       commonShares: b.common_shares,
       dlom,
+      dloc,
     };
     const grid = sensitivityGrid(inputs, {
       volatilitySteps: b.volatility_steps,
@@ -115,7 +128,7 @@ export function registerSensitivityRoutes(
       rfrSteps: b.rfr_steps,
     });
     return {
-      sensitivity: { ...grid, base, tables, dlom, currency: valuation.currency },
+      sensitivity: { ...grid, base, tables, dlom, dloc, currency: valuation.currency },
     };
   });
 
