@@ -2030,8 +2030,12 @@ describe('discount exhibit', () => {
       // Each deduction, recomputed from nothing but what the page prints.
       const shownDloc = money(seen, 'discount for lack of control')!;
       const shownDlom = money(seen, 'discount for lack of marketability')!;
-      expect(shownDloc).toBeCloseTo(base * dloc, 4);
-      expect(shownDlom).toBeCloseTo(base * (1 - dloc) * dlom, 4);
+      // Within one unit of the fourth place rather than half of one: each
+      // deduction is the difference of the two printed subtotals beside it, so
+      // the column foots to the conclusion (discountLadderFooting.test.ts), and
+      // a difference of two struck figures carries both their roundings.
+      expect(Math.abs(shownDloc - base * dloc)).toBeLessThanOrEqual(0.0001 + 1e-9);
+      expect(Math.abs(shownDlom - base * (1 - dloc) * dlom)).toBeLessThanOrEqual(0.0001 + 1e-9);
     });
 
     it('still reads as a round percentage when the rate is a round one', () => {

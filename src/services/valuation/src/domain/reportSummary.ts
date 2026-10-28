@@ -206,6 +206,32 @@ export function marketableValuePerShare(results: ResultsShape): number | null {
   return fmv / factor;
 }
 
+/**
+ * The per-share discount ladder as it is printed: each subtotal struck at
+ * `PER_SHARE_DIGITS`, and each discount the difference of the two printed
+ * figures either side of it.
+ *
+ * Rounding every line on its own does not foot. A $13.7449 conclusion at 5.52%
+ * DLOC and 32.3% DLOM printed $21.4888 − $1.1862 − $6.5578, which is $13.7448:
+ * a quarter of all ladders were a ten-thousandth out, on the one table a
+ * reviewer adds up by hand. Struck this way the column adds to the conclusion
+ * exactly, and no line moves by more than the rounding it already had.
+ */
+export function footedDiscountLadder(
+  base: number,
+  dloc: number,
+  fmv: number,
+): { base: number; afterDloc: number; fmv: number; dlocAmount: number; dlomAmount: number } {
+  const scale = 10 ** PER_SHARE_DIGITS;
+  const strike = (n: number) => Math.round(n * scale) / scale;
+  const b = strike(base);
+  const a = strike(base * (1 - dloc));
+  const f = strike(fmv);
+  // Differences of struck figures, re-struck so binary noise (1.1862000000001)
+  // never reaches the formatter as a different digit.
+  return { base: b, afterDloc: a, fmv: f, dlocAmount: strike(b - a), dlomAmount: strike(a - f) };
+}
+
 /** Equity value by weighted approach, largest first — the bar chart. */
 export function approachChart(results: ResultsShape, currency: string): ChartSpec | null {
   const approaches = results.approaches;
@@ -415,21 +441,21 @@ export function discountChart(results: ResultsShape, currency: string): ChartSpe
 
   const dloc = num(results.discounts?.dloc) ?? 0;
   const dlom = num(results.discounts?.dlom) ?? 0;
-  const afterDloc = base * (1 - dloc);
+  const ladder = footedDiscountLadder(base, dloc, fmv);
   const points: Array<{ label: string; value: number; display: string }> = [];
   if (dloc > 0) {
     points.push({
       // Exact: the point's own `display` is the money this rate took out.
       label: `Less DLOC ${formatExactPercent(dloc)}`,
-      value: afterDloc - base,
-      display: `−${formatCurrency(base - afterDloc, currency, 4)}`,
+      value: -ladder.dlocAmount,
+      display: `−${formatCurrency(ladder.dlocAmount, currency, 4)}`,
     });
   }
   if (dlom > 0) {
     points.push({
       label: `Less DLOM ${formatExactPercent(dlom)}`,
-      value: fmv - afterDloc,
-      display: `−${formatCurrency(afterDloc - fmv, currency, 4)}`,
+      value: -ladder.dlomAmount,
+      display: `−${formatCurrency(ladder.dlomAmount, currency, 4)}`,
     });
   }
   if (points.length === 0) return null;
@@ -439,13 +465,13 @@ export function discountChart(results: ResultsShape, currency: string): ChartSpe
     title: 'From marketable value to fair market value (per common share)',
     start: {
       label: 'Marketable common',
-      value: base,
-      display: formatCurrency(base, currency, 4),
+      value: ladder.base,
+      display: formatCurrency(ladder.base, currency, 4),
     },
     steps: points,
     end_label: 'Concluded FMV',
-    end_value: fmv,
-    end_display: formatCurrency(fmv, currency, 4),
+    end_value: ladder.fmv,
+    end_display: formatCurrency(ladder.fmv, currency, 4),
     note: 'Discounts are applied multiplicatively, in the order shown.',
   };
 }

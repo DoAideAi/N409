@@ -6,6 +6,7 @@ import {
   DLOM_LABELS,
   formatCurrency,
   formatPercent,
+  footedDiscountLadder,
   formatExactPercent,
   num,
 } from './reportSummary.js';
@@ -2787,7 +2788,7 @@ export function discountExhibit(
   const base = direct !== null && direct > 0 ? direct : factor > 0 ? fmv / factor : null;
   if (base === null) return null;
 
-  const afterDloc = base * (1 - dloc);
+  const ladder = footedDiscountLadder(base, dloc, fmv);
   const method = text(discounts.dlom_method);
   const dlocDetail = record(discounts.dloc_detail);
   const dlocMethod = text(discounts.dloc_method);
@@ -2815,24 +2816,24 @@ export function discountExhibit(
       : `Per the allocation above; ${formatPercent(minorityWeight, 0)} of the weighted equity ` +
         'value came from approaches that already produce a minority value';
 
-  const rows: string[][] = [[openingLabel, formatCurrency(base, currency, 4), openingBasis]];
+  const rows: string[][] = [[openingLabel, formatCurrency(ladder.base, currency, 4), openingBasis]];
   if (dloc > 0 || controlling) {
     rows.push(
       [
         // The rate the reader is invited to multiply, not merely to read: the
         // figure beside it is the money this rate took out, to four places.
         `Less: discount for lack of control — ${formatExactPercent(dloc)}`,
-        `(${formatCurrency(base - afterDloc, currency, 4)})`,
+        `(${formatCurrency(ladder.dlocAmount, currency, 4)})`,
         dlocMethod
           ? (DLOC_METHOD_NAMES[dlocMethod] ?? esc(dlocMethod))
           : 'A minority holder cannot compel a liquidity event or direct the business',
       ],
-      ['Marketable, minority value per common share', formatCurrency(afterDloc, currency, 4), ''],
+      ['Marketable, minority value per common share', formatCurrency(ladder.afterDloc, currency, 4), ''],
     );
   }
   rows.push([
     `Less: discount for lack of marketability — ${formatExactPercent(dlom)}`,
-    `(${formatCurrency(afterDloc - fmv, currency, 4)})`,
+    `(${formatCurrency(ladder.dlomAmount, currency, 4)})`,
     method ? (DLOM_LABELS[method] ?? esc(method)) : 'No active market exists for the shares',
   ]);
 
