@@ -87,6 +87,16 @@ const FIXTURES: Array<{ name: string; csv: string; headers: string[] }> = [
     csv: 'Class,Units',
     headers: ['Class', 'Units'],
   },
+  {
+    name: 'a semicolon file with blank lines above its header',
+    csv: '\n\r\nSecurity Class;Units;Price\nCommon;100;1,00',
+    headers: ['Security Class', 'Units', 'Price'],
+  },
+  {
+    name: 'a semicolon file whose first column title spans two lines',
+    csv: '"Security\nClass";Units;Price\nCommon;100;1,00',
+    headers: ['Security\nClass', 'Units', 'Price'],
+  },
 ];
 
 describe('the column names the browser has to agree with', () => {

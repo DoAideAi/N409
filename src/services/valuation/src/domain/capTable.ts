@@ -490,16 +490,25 @@ const DELIMITERS = [',', ';', '\t'] as const;
 export function sniffDelimiter(text: string): string {
   const counts = new Map<string, number>(DELIMITERS.map((d) => [d, 0]));
   let inQuotes = false;
+  // Blank lines above the header are skipped by `parseCsvSheet`, so they are
+  // not the header here either. Breaking on the first of them left nothing to
+  // count, and a semicolon export with an empty first line read as one column.
+  let inHeader = false;
   for (let i = 0; i < text.length; i++) {
     const c = text[i]!;
     if (c === '"') {
+      inHeader = true;
       // A doubled quote is an escaped quote, not a state change.
       if (inQuotes && text[i + 1] === '"') i++;
       else inQuotes = !inQuotes;
       continue;
     }
     if (inQuotes) continue;
-    if (c === '\n' || c === '\r') break; // the header record ends here
+    if (c === '\n' || c === '\r') {
+      if (inHeader) break; // the header record ends here
+      continue;
+    }
+    if (!/\s/.test(c)) inHeader = true;
     const seen = counts.get(c);
     if (seen !== undefined) counts.set(c, seen + 1);
   }

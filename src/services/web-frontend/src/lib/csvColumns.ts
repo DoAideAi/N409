@@ -49,21 +49,36 @@ const DELIMITERS = [',', ';', '\t'] as const;
  * company name with a comma in it cannot outvote the real delimiter.
  */
 function sniffDelimiter(text: string): string {
-  const end = text.search(/[\r\n]/);
-  const header = end === -1 ? text : text.slice(0, end);
+  // The header ends at the first newline *outside* quotes, after any blank
+  // lines above it — where `firstRecord` below, and the server's
+  // `sniffDelimiter`, say it ends. Cutting at the first raw newline read a
+  // quoted two-line column title, or an empty first line, as a header with no
+  // separators in it, and a semicolon sheet came back as one column.
+  const counts = new Map<string, number>(DELIMITERS.map((d) => [d, 0]));
+  let inQuotes = false;
+  let inHeader = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i]!;
+    if (c === '"') {
+      inHeader = true;
+      if (inQuotes && text[i + 1] === '"') i++;
+      else inQuotes = !inQuotes;
+      continue;
+    }
+    if (inQuotes) continue;
+    if (c === '\n' || c === '\r') {
+      if (inHeader) break;
+      continue;
+    }
+    if (!/\s/.test(c)) inHeader = true;
+    const seen = counts.get(c);
+    if (seen !== undefined) counts.set(c, seen + 1);
+  }
 
   let best: string = DELIMITERS[0];
   let bestCount = 0;
   for (const delimiter of DELIMITERS) {
-    let count = 0;
-    let inQuotes = false;
-    for (let i = 0; i < header.length; i++) {
-      const c = header[i];
-      if (c === '"') {
-        if (inQuotes && header[i + 1] === '"') i++;
-        else inQuotes = !inQuotes;
-      } else if (!inQuotes && c === delimiter) count++;
-    }
+    const count = counts.get(delimiter)!;
     if (count > bestCount) {
       best = delimiter;
       bestCount = count;
