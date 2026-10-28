@@ -232,9 +232,13 @@ export function planLimitDetail(r: {
   /** {@link quotaAwaitsRenewal} for this subscription. */
   awaiting_renewal: boolean;
 }): string {
+  // Starter's limit is 1 (migration 0209), and "all 1 valuations" is the
+  // sentence its every refusal read.
   const included =
     typeof r.valuation_limit === 'number' && Number.isFinite(r.valuation_limit)
-      ? `all ${r.valuation_limit} valuations included in ${r.plan_name}`
+      ? r.valuation_limit === 1
+        ? `the 1 valuation included in ${r.plan_name}`
+        : `all ${r.valuation_limit} valuations included in ${r.plan_name}`
       : `the valuations included in ${r.plan_name}`;
 
   if (r.awaiting_renewal) {

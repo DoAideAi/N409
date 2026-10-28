@@ -496,6 +496,12 @@ describe('planLimitDetail', () => {
     expect(detail).toContain('/billing');
   });
 
+  it('names a one-valuation plan in the singular', () => {
+    const detail = planLimitDetail({ ...base, plan_name: 'Starter', valuation_limit: 1, valuations_used: 1 });
+    expect(detail).toContain('the 1 valuation included in Starter');
+    expect(detail).not.toContain('1 valuations');
+  });
+
   it('never offers the add-on purchase this product does not sell', () => {
     for (const awaiting of [false, true]) {
       const detail = planLimitDetail({ ...base, awaiting_renewal: awaiting });
