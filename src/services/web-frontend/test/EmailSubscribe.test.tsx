@@ -26,6 +26,23 @@ describe('EmailSubscribe', () => {
     expect(screen.getByRole('button', { name: /subscribe/i })).toBeInTheDocument();
   });
 
+  it('posts to /subscribe, which api() prefixes — never a second /api/v1', async () => {
+    // It passed '/api/v1/subscribe', so the request went to
+    // /api/v1/api/v1/subscribe and every signup was a 404.
+    vi.mocked(mockApi).mockResolvedValueOnce({ ok: true });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <EmailSubscribe />
+      </MemoryRouter>,
+    );
+    await user.type(screen.getByLabelText(/compliance deadlines/i), 'test@example.com');
+    await user.click(screen.getByRole('button', { name: /subscribe/i }));
+    await waitFor(() =>
+      expect(mockApi).toHaveBeenCalledWith('/subscribe', { method: 'POST', body: { email: 'test@example.com' } }),
+    );
+  });
+
   it('shows success message after submission', async () => {
     vi.mocked(mockApi).mockResolvedValueOnce({ ok: true });
     const user = userEvent.setup();

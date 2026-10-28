@@ -14,7 +14,7 @@ export function EmailSubscribe() {
       setStatus('submitting');
       setErrorMsg('');
       try {
-        await api('/api/v1/subscribe', { method: 'POST', body: { email: trimmed } });
+        await api('/subscribe', { method: 'POST', body: { email: trimmed } });
         setStatus('success');
         setEmail('');
       } catch (err) {
