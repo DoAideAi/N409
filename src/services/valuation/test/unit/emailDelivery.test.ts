@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  BOUNCE_EVENT_KINDS,
+  isBounceEventKind,
   classifyDsnStatus,
   classifySmtpReply,
   deliveryStateOf,
@@ -136,5 +138,12 @@ describe('rateOrNull', () => {
   it('rounds to two decimals at and above the floor', () => {
     expect(rateOrNull(RATE_FLOOR, RATE_FLOOR)).toBe(100);
     expect(rateOrNull(1, 3 * RATE_FLOOR)).toBe(1.67);
+  });
+});
+
+describe('isBounceEventKind', () => {
+  it('is exactly the kinds BOUNCE_EVENT_KINDS lists', () => {
+    const all = ['delivered', 'bounced', 'complained', 'deferred', 'opened'] as const;
+    expect(all.filter(isBounceEventKind)).toEqual([...BOUNCE_EVENT_KINDS]);
   });
 });

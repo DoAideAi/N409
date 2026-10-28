@@ -3,6 +3,7 @@ import { describeTransportFailure, newUlid } from '@n409/shared';
 import { withClientTransaction, withTransaction } from '../db/pool.js';
 import {
   classifyTransportError,
+  isBounceEventKind,
   isTerminalBounce,
   type BounceKind,
   type DeliveryEventKind,
@@ -122,7 +123,7 @@ function isPool(db: pg.Pool | pg.PoolClient): db is pg.Pool {
  * the column can never disagree about what an unclassified event meant.
  */
 function resolvedBounceKind(input: DeliveryEventInput): BounceKind | null {
-  if (input.kind !== 'bounced' && input.kind !== 'complained') return null;
+  if (!isBounceEventKind(input.kind)) return null;
   return input.bounceKind ?? (input.kind === 'complained' ? 'complaint' : 'hard');
 }
 

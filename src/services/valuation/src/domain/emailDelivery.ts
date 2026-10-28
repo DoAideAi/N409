@@ -189,11 +189,16 @@ export function deliveryStateOf(row: DeliveryColumns): DeliveryState {
 }
 
 /**
- * Which ledger event kinds move which column. Kept as data so the repo's
- * application step and the stats endpoint cannot drift apart on what 'deferred'
- * means.
+ * The ledger event kinds that carry a bounce kind. Kept as data so the repo's
+ * metric label (`resolvedBounceKind`) and its column fold agree on which
+ * events count as bounces.
  */
 export const BOUNCE_EVENT_KINDS = ['bounced', 'complained'] as const;
+
+/** Is *kind* one of {@link BOUNCE_EVENT_KINDS}? */
+export function isBounceEventKind(kind: DeliveryEventKind): boolean {
+  return (BOUNCE_EVENT_KINDS as readonly DeliveryEventKind[]).includes(kind);
+}
 
 /**
  * A delivery rate worth printing, or null when the denominator is too small to
