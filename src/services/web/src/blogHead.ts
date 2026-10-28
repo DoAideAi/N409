@@ -27,6 +27,8 @@ export const HEAD_FALLBACK_END = '<!--n409:head-fallback-end-->';
 const FALLBACK_BLOCK = new RegExp(`[ \\t]*${HEAD_FALLBACK_START}[\\s\\S]*?${HEAD_FALLBACK_END}`, 'i');
 
 const SITE_NAME = 'DoAide 409A';
+/** The statuses that say a post does not exist, and so may be remembered. */
+const NOT_FOUND_STATUSES: ReadonlySet<number> = new Set([404, 410]);
 const DEFAULT_OG_IMAGE = '/og-image.png';
 
 /** The fields of the public blog API's post this head is built from. */
@@ -164,9 +166,15 @@ export function blogHeadSource(opts: BlogHeadSourceOptions): (slug: string) => P
         if (candidate && typeof candidate.title === 'string' && candidate.published !== false) {
           post = { ...candidate, slug };
         }
-      } else if (res.status >= 500) {
-        // An outage is not an answer about the post; ask again next time.
-        cacheable = false;
+      } else {
+        // Only "there is no such post" is an answer about the post. A 429, a
+        // 408 or any 5xx is the API being busy or down, and caching it as
+        // "missing" served the generic head for that post for a whole TTL —
+        // to the crawl burst most likely to have caused it. Ask again next time.
+        cacheable = NOT_FOUND_STATUSES.has(res.status);
+        // Unread, the body holds its connection until the response is
+        // collected; an outage answered on every request piles those up.
+        await res.body?.cancel().catch(() => undefined);
       }
     } catch {
       cacheable = false;

@@ -142,6 +142,33 @@ describe('blogHeadSource', () => {
     expect(down).toHaveBeenCalledTimes(2);
   });
 
+  it.each([429, 408, 400, 502])('does not remember a %i as a missing post', async (status) => {
+    const busy = answering({ error: 'busy' }, status);
+    const lookup = blogHeadSource({ valuationUrl: 'http://v', fetchFn: busy });
+    await lookup('x');
+    await lookup('x');
+    expect(busy).toHaveBeenCalledTimes(2);
+  });
+
+  it('remembers a 410 as gone', async () => {
+    const gone = answering({ error: 'gone' }, 410);
+    const lookup = blogHeadSource({ valuationUrl: 'http://v', fetchFn: gone });
+    await lookup('x');
+    await lookup('x');
+    expect(gone).toHaveBeenCalledTimes(1);
+  });
+
+  it('releases the body of a response it does not read', async () => {
+    const cancel = vi.fn(async () => undefined);
+    const fetchFn = vi.fn(async () => {
+      const res = new Response('down', { status: 503 });
+      vi.spyOn(res.body!, 'cancel').mockImplementation(cancel);
+      return res;
+    });
+    await blogHeadSource({ valuationUrl: 'http://v', fetchFn })('x');
+    expect(cancel).toHaveBeenCalledTimes(1);
+  });
+
   it('never surfaces an unpublished post', async () => {
     const lookup = blogHeadSource({ valuationUrl: 'http://v', fetchFn: answering({ post: { ...POST, published: false } }) });
     expect(await lookup(POST.slug)).toBeUndefined();
