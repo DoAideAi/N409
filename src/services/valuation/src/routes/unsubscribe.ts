@@ -133,7 +133,7 @@ export function registerUnsubscribeRoutes(
          * `alert: true` and a classified `failure_reason`, which is what the
          * rest of the post-commit population gets for exactly this shape.
          */
-        logUnretried(app.log, err, {}, 'a one-click unsubscribe was not applied and will not be retried');
+        logUnretried(req.log, err, {}, 'a one-click unsubscribe was not applied and will not be retried');
         return false;
       });
       // 200 either way. A provider that gets a non-2xx may conclude the sender

@@ -280,7 +280,8 @@ export async function runRetentionSweep(
    *
    * Conditional on a logger because `opts.log` is optional and there is
    * genuinely nowhere else to put it; both production callers — the six-hourly
-   * tick in `index.ts` and `POST /retention/sweep` — pass `app.log`.
+   * tick in `index.ts` (`app.log`) and `POST /retention/sweep` (the request's
+   * own `req.log`, so its lines carry the request id) — pass one.
    */
   try {
     const valPolicy = policies.find((p) => p.data_type === 'valuation');
@@ -607,7 +608,7 @@ export function registerRetentionRoutes(app: FastifyInstance, deps: { pool: pg.P
       // A partner integration otherwise finds out by a 409 on its next write,
       // or never. `valuation.retired` is the only terminal event on that API
       // and this is one of the two things that produces it.
-      await firePartnerWebhooksForRetirement({ pool: deps.pool, log: app.log }, [id]);
+      await firePartnerWebhooksForRetirement({ pool: deps.pool, log: req.log }, [id]);
     }
     return { retired, valuation: await findValuationById(deps.pool, id) };
   });
@@ -736,7 +737,7 @@ export function registerRetentionRoutes(app: FastifyInstance, deps: { pool: pg.P
         // terminal — otherwise has no event saying the engagement came back,
         // and the `valuation.state_changed` it resumes emitting arrives against
         // a record the integration has closed.
-        await firePartnerWebhooksForRestoration({ pool: deps.pool, log: app.log }, [id]);
+        await firePartnerWebhooksForRestoration({ pool: deps.pool, log: req.log }, [id]);
         return {
           restored,
           sla_credited: slaCredited,
@@ -780,7 +781,7 @@ export function registerRetentionRoutes(app: FastifyInstance, deps: { pool: pg.P
     let progress: SweepResult | null = null;
     try {
       result = await runRetentionSweep(deps.pool, {
-        log: app.log,
+        log: req.log,
         onProgress: (p) => {
           progress = p;
         },
@@ -815,7 +816,7 @@ export function registerRetentionRoutes(app: FastifyInstance, deps: { pool: pg.P
         // what. Nothing revisits it. `warn` is the level that promises
         // something will.
         logUnretried(
-          app.log,
+          req.log,
           auditErr,
           { actorId: principal.id, sweep: 'retention', trigger: 'manual' },
           'retention sweep failure not recorded on the audit spine and not retried',

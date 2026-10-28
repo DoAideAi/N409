@@ -460,7 +460,7 @@ export function registerDebtRoutes(app: FastifyInstance, deps: { pool: pg.Pool; 
       // column is nullable) and the caller still gets a 200, so without this
       // the whole trace of it is a NULL column and an em dash in the valuation
       // history exhibit, found by whoever reads the deliverable.
-      app.log.warn(
+      req.log.warn(
         {
           instrument_id: id,
           instrument_type: instrument.instrument_type,

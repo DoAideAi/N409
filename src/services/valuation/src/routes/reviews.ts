@@ -132,7 +132,7 @@ export function registerReviewRoutes(
       {
         pool: deps.pool,
         transport: deps.transport,
-        log: app.log,
+        log: req.log,
         publicBaseUrl: deps.publicBaseUrl,
         settings: deps.settings,
       },

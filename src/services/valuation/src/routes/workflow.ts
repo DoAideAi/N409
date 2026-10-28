@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import { z } from 'zod';
 import { ApiProblem, isUlid, problems } from '@n409/shared';
@@ -191,12 +191,13 @@ export function registerWorkflowRoutes(app: FastifyInstance, deps: WorkflowDeps)
     to: ValuationState,
     principal: Principal,
     source: string,
+    log: FastifyBaseLogger,
   ): Promise<ValuationRow> =>
     applyValuationState(
       {
         pool: deps.pool,
         transport: deps.transport,
-        log: app.log,
+        log,
         publicBaseUrl: deps.publicBaseUrl,
         settings: deps.settings,
       },
@@ -219,7 +220,7 @@ export function registerWorkflowRoutes(app: FastifyInstance, deps: WorkflowDeps)
           'Move it with a state change instead, or restart it.',
       );
     }
-    return { valuation: await applyState(valuation, next, principal, 'workflow') };
+    return { valuation: await applyState(valuation, next, principal, 'workflow', req.log) };
   });
 
   app.post('/api/v1/valuations/:id/workflow/restart', { preHandler: app.authenticate }, async (req) => {
@@ -230,7 +231,7 @@ export function registerWorkflowRoutes(app: FastifyInstance, deps: WorkflowDeps)
     refuseIfRetired(valuation, 'accepting workflow changes');
 
     if (!canRestart(valuation.state)) throw problems.conflict(restartRefusal(valuation.state));
-    return { valuation: await applyState(valuation, RESTART_STATE, principal, 'workflow') };
+    return { valuation: await applyState(valuation, RESTART_STATE, principal, 'workflow', req.log) };
   });
 
   app.post('/api/v1/valuations/:id/workflow/reassign', { preHandler: app.authenticate }, async (req) => {
@@ -254,7 +255,9 @@ export function registerWorkflowRoutes(app: FastifyInstance, deps: WorkflowDeps)
     return { valuation: updated };
   });
 
-  const executeBulk = async (principal: Principal, input: BulkInput) => {
+  // `log` is the request's own logger, so a row's failure is filed under the
+  // request id of the bulk call that made it rather than under none.
+  const executeBulk = async (principal: Principal, input: BulkInput, log: FastifyBaseLogger) => {
     // Both entry points normalize, but the guarantee belongs to the executor:
     // it is the loop whose body is not idempotent. See `dedupeIds`.
     const ids = dedupeIds(input.ids);
@@ -347,7 +350,7 @@ export function registerWorkflowRoutes(app: FastifyInstance, deps: WorkflowDeps)
                   `“${stateLabel(state!)}”.`,
               );
             }
-            const updated = await applyState(valuation, state!, principal, 'bulk');
+            const updated = await applyState(valuation, state!, principal, 'bulk', log);
             results.push({ id, ok: true, state: updated.state });
             break;
           }
@@ -358,13 +361,13 @@ export function registerWorkflowRoutes(app: FastifyInstance, deps: WorkflowDeps)
                 `There is no next step to advance to from “${stateLabel(valuation.state)}”. ` +
                   'Move it with a state change instead, or restart it.',
               );
-            const updated = await applyState(valuation, next, principal, 'bulk');
+            const updated = await applyState(valuation, next, principal, 'bulk', log);
             results.push({ id, ok: true, state: updated.state });
             break;
           }
           case 'restart': {
             if (!canRestart(valuation.state)) throw problems.conflict(restartRefusal(valuation.state));
-            const updated = await applyState(valuation, RESTART_STATE, principal, 'bulk');
+            const updated = await applyState(valuation, RESTART_STATE, principal, 'bulk', log);
             results.push({ id, ok: true, state: updated.state });
             break;
           }
@@ -403,7 +406,7 @@ export function registerWorkflowRoutes(app: FastifyInstance, deps: WorkflowDeps)
          * constant is not a loss: a bulk row that fails is retried as a single
          * request, which answers with the real problem document.
          */
-        app.log.warn({ err, valuationId: id }, 'bulk transition failed for one row');
+        log.warn({ err, valuationId: id }, 'bulk transition failed for one row');
         results.push({
           id,
           ok: false,
@@ -434,7 +437,7 @@ export function registerWorkflowRoutes(app: FastifyInstance, deps: WorkflowDeps)
     requireOps(principal);
     const parsed = BulkBody.safeParse(req.body);
     if (!parsed.success) throw invalidBody('Invalid bulk action', parsed.error);
-    return executeBulk(principal, { ...parsed.data, ids: dedupeIds(parsed.data.ids) });
+    return executeBulk(principal, { ...parsed.data, ids: dedupeIds(parsed.data.ids) }, req.log);
   });
 
   app.post('/api/v1/valuations/bulk-action', { preHandler: app.authenticate }, async (req) => {
@@ -442,6 +445,6 @@ export function registerWorkflowRoutes(app: FastifyInstance, deps: WorkflowDeps)
     requireOps(principal);
     const parsed = BulkActionBody.safeParse(req.body);
     if (!parsed.success) throw invalidBody('Invalid bulk action', parsed.error);
-    return executeBulk(principal, toBulkInput(parsed.data));
+    return executeBulk(principal, toBulkInput(parsed.data), req.log);
   });
 }

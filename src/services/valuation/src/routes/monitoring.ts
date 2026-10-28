@@ -596,7 +596,7 @@ export function registerMonitoringRoutes(
             // Nothing committed, so nothing to undo: the next scan sees the
             // trigger still firing and records it then.
             const failure = logFailure(
-              app.log,
+              req.log,
               err,
               { monitorId: m.id, valuationId: m.valuation_id, trigger: t.type },
               'monitor alert could not be recorded; the rest of the scan continues',
@@ -621,7 +621,7 @@ export function registerMonitoringRoutes(
               // did what it was asked and there was no one to tell, which is a
               // conversation with whoever owns the engagement rather than a
               // page.
-              app.log.warn(
+              req.log.warn(
                 {
                   monitorId: m.id,
                   valuationId: m.valuation_id,
@@ -635,7 +635,7 @@ export function registerMonitoringRoutes(
             }
             if (reviewer) {
               await sendTransactionalEmail(
-                { pool: deps.pool, transport: deps.transport, log: app.log, settings: deps.settings },
+                { pool: deps.pool, transport: deps.transport, log: req.log, settings: deps.settings },
                 {
                   valuationId: m.valuation_id,
                   toUserId: reviewer.id,
@@ -658,7 +658,7 @@ export function registerMonitoringRoutes(
               monitorId: m.id,
               signature: t.signature,
             }).catch((undoErr: unknown) => {
-              app.log.error(
+              req.log.error(
                 { err: undoErr, monitorId: m.id, signature: t.signature },
                 'could not take back an unannounced monitor alert',
               );
@@ -667,13 +667,13 @@ export function registerMonitoringRoutes(
             const context = { monitorId: m.id, valuationId: m.valuation_id, trigger: t.type };
             const failure = undone
               ? logFailure(
-                  app.log,
+                  req.log,
                   err,
                   context,
                   'monitor alert was not announced; the record of it has been taken back so the next scan re-fires it',
                 )
               : logUnretried(
-                  app.log,
+                  req.log,
                   err,
                   context,
                   'monitor alert was recorded and never announced, and the record could not be taken back — no scan will fire it again',

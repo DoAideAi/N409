@@ -211,7 +211,7 @@ export function registerIntakeRoutes(
 
     const list = missing.map((m) => `• ${m.label}`).join('\n');
     await sendTransactionalEmail(
-      { pool: deps.pool, transport: deps.transport, log: app.log, settings: deps.settings },
+      { pool: deps.pool, transport: deps.transport, log: req.log, settings: deps.settings },
       {
         valuationId: valuation.id,
         toUserId: owner.id,

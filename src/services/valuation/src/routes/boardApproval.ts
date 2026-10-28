@@ -437,7 +437,7 @@ export function registerBoardApprovalRoutes(
        */
       try {
         await sendTransactionalEmail(
-          { pool: deps.pool, transport: deps.transport, log: app.log, settings: deps.settings },
+          { pool: deps.pool, transport: deps.transport, log: req.log, settings: deps.settings },
           {
             valuationId: valuation.id,
             toEmail: member.member_email,
@@ -462,7 +462,7 @@ export function registerBoardApprovalRoutes(
         // so this is not a no-op failure the operator can ignore. Said out loud
         // because the 500 they see cannot say it.
         logUnretried(
-          app.log,
+          req.log,
           err,
           { valuationId: valuation.id, memberId: member.id },
           'board sign-off link could not be queued, and the member’s previous link is already revoked',
@@ -474,7 +474,7 @@ export function registerBoardApprovalRoutes(
         actorId: principal.id,
       }).catch((err: unknown) => {
         logUnretried(
-          app.log,
+          req.log,
           err,
           { valuationId: valuation.id, memberId: member.id },
           'board sign-off link was sent but not stamped; the list still reads “not sent” and a re-send would revoke it',
@@ -488,7 +488,7 @@ export function registerBoardApprovalRoutes(
         // holding a link `board_signoffs`' cascade has already killed, and the
         // one place that can say so is here.
         logUnretried(
-          app.log,
+          req.log,
           new Error('board member removed between sending the link and stamping it'),
           { valuationId: valuation.id, memberId: member.id },
           'board sign-off link was sent to a member who was removed in the same moment; the link they received is already dead',

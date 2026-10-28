@@ -588,9 +588,21 @@ describe.skipIf(!dbUp)('Debt valuation', () => {
       })
     ).json().instrument.id as string;
 
-    const warn = vi.spyOn(app.log, 'warn');
+    // The route logs on the request's own logger (so the line carries the
+    // request id), which Fastify makes with `app.log.child` — a spy on
+    // `app.log.warn` never sees it. Record the warns of every child instead.
+    const lines: Record<string, unknown>[] = [];
+    const realChild = app.log.child.bind(app.log);
+    const child = vi.spyOn(app.log, 'child').mockImplementation((...args) => {
+      const made = realChild(...args);
+      const realWarn = made.warn.bind(made);
+      made.warn = ((obj: unknown, ...rest: unknown[]) => {
+        lines.push(obj as Record<string, unknown>);
+        return (realWarn as (...a: unknown[]) => void)(obj, ...rest);
+      }) as typeof made.warn;
+      return made;
+    });
     shapelessResult = true;
-    let lines: Record<string, unknown>[] = [];
     try {
       const res = await app.inject({
         method: 'POST',
@@ -602,9 +614,7 @@ describe.skipIf(!dbUp)('Debt valuation', () => {
       expect(res.json().valuation.fair_value).toBeNull();
     } finally {
       shapelessResult = false;
-      // Read before restoring: `mockRestore` clears the recorded calls too.
-      lines = warn.mock.calls.map((c) => c[0] as Record<string, unknown>);
-      warn.mockRestore();
+      child.mockRestore();
     }
 
     const line = lines.find((f) => f?.instrument_id === id);

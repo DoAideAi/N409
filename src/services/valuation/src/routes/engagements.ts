@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import { z } from 'zod';
 import { isUlid, logUnretried, problems } from '@n409/shared';
@@ -418,8 +418,8 @@ export function registerEngagementRoutes(
   app.post('/api/v1/admin/engagements/remind-overdue', { preHandler: app.authenticate }, async (req) => {
     const principal = requirePrincipal(req);
     requireOps(principal);
-    const run = await withSweepLock(deps.pool, SWEEP_LOCKS.overdueReminders, app.log, () =>
-      remindOverdue(principal),
+    const run = await withSweepLock(deps.pool, SWEEP_LOCKS.overdueReminders, req.log, () =>
+      remindOverdue(principal, req.log),
     );
     if (!run.ran) {
       throw problems.conflict(
@@ -430,8 +430,9 @@ export function registerEngagementRoutes(
     return run.value;
   });
 
-  /** The pass itself, run under the lock above. */
-  const remindOverdue = async (principal: Principal) => {
+  /** The pass itself, run under the lock above. Logs on the request's logger,
+   * so the alert carries the id of the call that ran the sweep. */
+  const remindOverdue = async (principal: Principal, log: FastifyBaseLogger) => {
     const now = new Date();
     const reminded: string[] = [];
     /**
@@ -569,7 +570,7 @@ export function registerEngagementRoutes(
             continue;
           }
           await sendTransactionalEmail(
-            { pool: deps.pool, transport: deps.transport, log: app.log, settings: deps.settings },
+            { pool: deps.pool, transport: deps.transport, log: log, settings: deps.settings },
             {
               valuationId: r.valuation_id,
               toUserId: r.assigned_analyst_id,
@@ -591,7 +592,7 @@ export function registerEngagementRoutes(
           // It stamps `alert: true` and classifies the reason, which is the token
           // reported below.
           const failure = logUnretried(
-            app.log,
+            log,
             err,
             { valuation_id: r.valuation_id, analyst_id: r.assigned_analyst_id, stage: r.current_stage },
             'overdue reminder failed for one engagement — the rest of the run continues',
@@ -639,7 +640,7 @@ export function registerEngagementRoutes(
           // says the reminder *went*, because the operator reading it must not
           // read it as one to re-send.
           const failure = logUnretried(
-            app.log,
+            log,
             err,
             { valuation_id: r.valuation_id, analyst_id: r.assigned_analyst_id, stage: r.current_stage },
             'overdue reminder was sent and its audit event was not written — do not re-run for this row',
@@ -655,7 +656,7 @@ export function registerEngagementRoutes(
       // reported below; the driver's own sentence stays in the log, where the
       // scrub is.
       const failure = logUnretried(
-        app.log,
+        log,
         err,
         { scanned, reminded_count: reminded.length },
         'the overdue sweep stopped before it had walked the whole book — the counts below are what it did reach',
@@ -663,7 +664,7 @@ export function registerEngagementRoutes(
       incomplete = failure.reason;
     }
     if (unreachable.length > 0) {
-      app.log.warn(
+      log.warn(
         { unreachable, alert: true },
         'engagements are past SLA with an analyst assigned who can no longer be reminded',
       );
