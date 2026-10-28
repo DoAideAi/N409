@@ -28,6 +28,7 @@ import {
   ISSUABLE_TEMPLATE_KEYS,
   MAX_GRANTEE_NAME,
   MAX_SCENARIO_FMVS,
+  parseScenarioFmvs,
   templateByKey,
   toIsoDate,
   vestingStatus,
@@ -287,10 +288,7 @@ export function registerGrantRoutes(app: FastifyInstance, deps: { pool: pg.Pool 
       throw problems.badRequest(`At most ${MAX_SCENARIO_FMVS} what-if FMVs may be requested`);
     }
     const fmvs = q
-      ? q
-          .split(',')
-          .map((s) => Number(s.trim()))
-          .filter((n) => Number.isFinite(n) && n >= 0)
+      ? parseScenarioFmvs(q)
       : defaultScenarioFmvs(baseFmv || currentFmv || 1);
 
     return {

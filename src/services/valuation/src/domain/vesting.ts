@@ -423,6 +423,24 @@ export function exerciseScenarios(
  */
 export const MAX_SCENARIO_FMVS = 20;
 
+/**
+ * The what-if FMVs a `?fmvs=1,2,5` query names.
+ *
+ * Each term used to go through `Number(s.trim())`, and `Number('')` is `0`. So
+ * a trailing comma (`?fmvs=1,2,`), a doubled one (`1,,2`) or a blank term
+ * added a $0 scenario nobody asked for — a priced row on the panel that the
+ * client never wrote. A blank term is absent, like a non-numeric or negative
+ * one, rather than a present zero; an explicit `0` still counts.
+ */
+export function parseScenarioFmvs(q: string): number[] {
+  return q
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s !== '')
+    .map(Number)
+    .filter((n) => Number.isFinite(n) && n >= 0);
+}
+
 export function defaultScenarioFmvs(currentFmv: number): number[] {
   return [1, 2, 5, 10].map((mult) => Math.round(currentFmv * mult * 10000) / 10000);
 }

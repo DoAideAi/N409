@@ -10,6 +10,7 @@ import {
   isIssuableTemplate,
   ISSUABLE_TEMPLATE_KEYS,
   monthsElapsed,
+  parseScenarioFmvs,
   templateByKey,
   vestingStatus,
   vestingTimeline,
@@ -488,5 +489,17 @@ describe('a cliff that is not a whole number of cadence periods', () => {
     };
     expect(vestingStatus(allAtOnce, new Date('2025-07-01T00:00:00Z')).vestedShares).toBe(1000);
     expect(vestingStatus(allAtOnce, new Date('2025-06-01T00:00:00Z')).vestedShares).toBe(0);
+  });
+});
+
+describe('parseScenarioFmvs — blank terms', () => {
+  it('drops empty terms instead of reading them as $0', () => {
+    expect(parseScenarioFmvs('1,2,')).toEqual([1, 2]);
+    expect(parseScenarioFmvs('1,,2')).toEqual([1, 2]);
+    expect(parseScenarioFmvs(' , ,')).toEqual([]);
+  });
+
+  it('keeps an explicit zero and drops negatives and non-numbers', () => {
+    expect(parseScenarioFmvs('0,-1,abc,Infinity,3.5')).toEqual([0, 3.5]);
   });
 });
