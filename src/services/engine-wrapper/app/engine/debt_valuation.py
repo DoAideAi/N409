@@ -526,6 +526,17 @@ def convertible_note(
         )
     u = math.exp(sigma * math.sqrt(dt))
     d = 1.0 / u
+    if not u > d:
+        # σ·√dt is below a double's resolution at 1.0, so `u` rounds to exactly
+        # 1 and the up and down moves are the same number. `p` below divides by
+        # `u − d`, which is zero — a ZeroDivisionError and a 500 for a maturity
+        # like 1e-300 years that is no maturity at all. Refused rather than
+        # priced as the degenerate case: this branch is only reachable by an
+        # input that was never a real term, and 0 is how a matured note is said.
+        raise EngineInputError(
+            f"maturity_years of {t:g} is too short for the binomial tree to resolve a price "
+            f"move at volatility {sigma:g} — enter 0 for a note that has already matured"
+        )
     disc_rf = math.exp(-r * dt)
     disc_risky = math.exp(-(r + cs) * dt)
     # The CRR no-arbitrage condition, checked rather than clamped.
