@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { AuditorPortalPage } from '../src/pages/AuditorPortalPage';
 
 /**
@@ -269,6 +269,18 @@ describe('AuditorPortalPage bundle', () => {
     });
     expect(await screen.findByText('Concluded FMV / share')).toBeInTheDocument();
     expect(screen.getByText('Equity value')).toBeInTheDocument();
+  });
+
+  it('names the conclusion block so heading navigation reaches it, and pairs each figure with its label', async () => {
+    mountBundle({
+      conclusion: { equity_value: '48250000', fmv_per_share: '3.47', engine_version: 'engine/v1.4.2' },
+    });
+    const heading = await screen.findByRole('heading', { level: 2, name: 'Conclusion' });
+    const block = screen.getByRole('region', { name: 'Conclusion' });
+    expect(block).toContainElement(heading);
+    const terms = within(block).getAllByRole('term').map((t) => t.textContent);
+    expect(terms).toEqual(['Concluded FMV / share', 'Equity value', 'Engine version']);
+    expect(within(block).getAllByRole('definition')).toHaveLength(3);
   });
 
   it('omits the conclusion block entirely when nothing has been concluded', async () => {

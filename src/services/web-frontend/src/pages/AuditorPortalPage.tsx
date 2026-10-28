@@ -218,7 +218,21 @@ export function AuditorPortalPage() {
       <p className="mt-1 text-xs text-ink-400">Access expires {formatDate(bundle.access_expires_at)}</p>
 
       {bundle.conclusion && (
-        <section className="mt-6 flex flex-wrap gap-6 rounded-lg border border-paper-300 bg-surface p-6 shadow-card">
+        /*
+         * The headline figures, and until now the one block on the page with
+         * no heading: every card below names itself with an h2, so a screen
+         * reader moving by heading — how an auditor skims a bundle — went from
+         * the company name straight to "Assumptions" and never heard the
+         * concluded value. Hidden visually; the layout is unchanged.
+         */
+        <section
+          aria-labelledby="auditor-conclusion"
+          className="mt-6 rounded-lg border border-paper-300 bg-surface p-6 shadow-card"
+        >
+          <h2 id="auditor-conclusion" className="sr-only">
+            Conclusion
+          </h2>
+          <dl className="flex flex-wrap gap-6">
           {perShareLabel !== null && (
             <Metric
               label={perShareLabel}
@@ -235,6 +249,7 @@ export function AuditorPortalPage() {
             />
           )}
           <Metric label="Engine version" value={bundle.conclusion.engine_version} />
+          </dl>
         </section>
       )}
 
@@ -516,10 +531,12 @@ function Metric({
           Number(value),
         )
       : value;
+  // A term and its value, like the assumptions' Fact rows, so each figure is
+  // read with its label rather than as two unrelated lines.
   return (
     <div>
-      <div className="overline text-ink-400">{label}</div>
-      <div className="tnum mt-1 font-display text-xl font-semibold text-ink-900">{display}</div>
+      <dt className="overline text-ink-400">{label}</dt>
+      <dd className="tnum mt-1 font-display text-xl font-semibold text-ink-900">{display}</dd>
     </div>
   );
 }
