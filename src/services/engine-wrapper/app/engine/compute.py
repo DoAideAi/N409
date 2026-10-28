@@ -1806,7 +1806,20 @@ def _compute_monte_carlo(
     if volatility is None:
         raise EngineInputError("volatility is required for the Monte Carlo allocation")
 
-    allocation = allocate_monte_carlo(equity_value, inputs, t=t, r=r, sigma=volatility)
+    try:
+        allocation = allocate_monte_carlo(equity_value, inputs, t=t, r=r, sigma=volatility)
+    except OverflowError as exc:
+        # `math.exp` raises rather than saturating, and the simulation takes it
+        # of `(r − σ²/2)·t + σ√t·z` for every draw and of `−r·t` for the
+        # discount. A risk-free rate typed in whole percent (400 for 4%) is
+        # enough: this answered 500 with nothing named. The arithmetic has no
+        # answer to give, so the caller is told which inputs set the exponent
+        # — the same refusal `debt_valuation.value_instrument` gives its own.
+        raise EngineInputError(
+            f"the Monte Carlo allocation overflowed a double ({exc}) — check risk_free_rate "
+            f"({r:g}), volatility ({volatility:g}) and the time to exit ({t:g} years); rates "
+            "are fractions (4% is 0.04)"
+        ) from exc
     _record_allocation(
         tr,
         "monte_carlo",
