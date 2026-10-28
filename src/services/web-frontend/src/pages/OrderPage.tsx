@@ -20,6 +20,13 @@ interface OrderHistoryItem {
   stripe_checkout_url?: string;
 }
 
+/** The suffix after a tier's price, as the pricing page writes it. */
+function intervalSuffix(tier: PricingTier): string {
+  if (tier.interval === 'year') return '/year';
+  if (tier.interval === 'month') return '/month';
+  return tier.priceCents === 0 ? '' : '/valuation';
+}
+
 function PlanSelector({
   selected,
   onSelect,
@@ -48,7 +55,9 @@ function PlanSelector({
               {formatUsd(tier.priceCents)}
             </span>
             <span className="ml-1 text-sm text-ink-500">
-              {tier.interval === 'one_time' ? '/valuation' : '/month'}
+              {/* `year` is the Annual plan, which read "$99/month" here and
+                  "$99/year" on the pricing page it was picked from. */}
+              {intervalSuffix(tier)}
             </span>
           </div>
           <p className="mt-2 text-xs text-ink-500">{tier.tagline}</p>
@@ -156,7 +165,7 @@ function ConfirmStep({
             <dt className="text-ink-500">Price</dt>
             <dd className="tnum font-semibold text-ink-900">
               {formatUsd(tier.priceCents)}
-              {tier.interval === 'month' ? '/month' : ''}
+              {tier.interval === 'one_time' ? '' : intervalSuffix(tier)}
             </dd>
           </div>
           <div className="flex justify-between">

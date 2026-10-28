@@ -73,6 +73,24 @@ describe('OrderPage', () => {
     expect(screen.getByText('Acme Corp')).toBeTruthy();
   });
 
+  it('prices the Annual plan per year, not per month', async () => {
+    // The selector labelled every non-one-time tier "/month", so "$99/year" on
+    // the pricing page became "$99/month" on the page that takes the order.
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ orders: [] }));
+    renderOrder();
+    expect(within(screen.getByTestId('select-annual')).getByText('/year')).toBeTruthy();
+    expect(within(screen.getByTestId('select-annual')).queryByText('/month')).toBeNull();
+    expect(within(screen.getByTestId('select-starter')).getByText('/valuation')).toBeTruthy();
+  });
+
+  it('states the Annual interval on the review step too', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ orders: [] }));
+    renderOrder('/order?tier=annual');
+    await userEvent.type(screen.getByTestId('company-name-input'), 'Acme Corp');
+    await userEvent.click(screen.getByTestId('continue-to-confirm'));
+    expect(within(screen.getByTestId('order-confirm')).getByText(/\/year/)).toBeTruthy();
+  });
+
   it('shows step indicator', () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ orders: [] }));
     renderOrder();
