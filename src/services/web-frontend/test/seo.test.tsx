@@ -82,3 +82,12 @@ describe('<Seo>', () => {
     );
   });
 });
+
+describe('serviceJsonLd delivery claim', () => {
+  it('promises the first draft in 24 hours, not the signed report', async () => {
+    const { serviceJsonLd } = await import('../src/lib/seo');
+    const description = String(serviceJsonLd('https://example.test').description);
+    expect(description).toContain('first draft in 24 hours');
+    expect(description).not.toMatch(/reports delivered in 24 hours/);
+  });
+});

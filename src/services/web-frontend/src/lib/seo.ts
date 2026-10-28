@@ -101,7 +101,11 @@ export function serviceJsonLd(origin: string = siteOrigin()): JsonLd {
     '@type': 'Service',
     name: '409A Valuation Service',
     description:
-      'Independent, defensible 409A valuations for startups — AI-assisted intake, transparent valuation engine, and analyst-signed reports delivered in 24 hours.',
+      // A first draft in 24 hours, the signed report in 7 business days — what
+      // the pricing page and every product FAQ say. This said the signed
+      // report arrived in 24 hours, to search engines, which is the Express
+      // add-on's promise and not the product's.
+      'Independent, defensible 409A valuations for startups — AI-assisted intake, transparent valuation engine, and analyst-signed reports, with a first draft in 24 hours.',
     url: `${origin}/`,
     provider: {
       '@type': 'Organization',
