@@ -20,6 +20,13 @@ import { authHeader, isDbAvailable, seedUser, setupTestApp, type TestApp } from 
 
 const WEBHOOK_SECRET = 'whsec_refund_test';
 const PRICE = priceForKind('409a');
+/**
+ * Partial refunds, as fractions of the price rather than literals. These were
+ * $200 and $190 against a $1,190 price; when the price dropped to $49 both
+ * became larger than the charge, so the "partial" cases were full refunds.
+ */
+const PARTIAL = Math.round(PRICE * 0.2);
+const PARTIAL_TOTALS = Math.round(PRICE * 0.15);
 
 function signedHeaders(payload: string): Record<string, string> {
   const t = Math.floor(Date.now() / 1000);
@@ -157,13 +164,13 @@ describe.skipIf(!dbUp)('refunds and chargebacks', () => {
       const { vid, sessionId, chargeId, intentId } = await seedPaid('Partial Co', 'refund_partial');
 
       const res = await post(
-        refundEvent({ id: chargeId, payment_intent: intentId, amount: PRICE, amount_refunded: 20_000 }),
+        refundEvent({ id: chargeId, payment_intent: intentId, amount: PRICE, amount_refunded: PARTIAL }),
       );
       expect(res.json()).toMatchObject({ refunded: false });
 
       const payment = await findPaymentBySessionId(ctx.pool, sessionId);
       expect(payment?.status).toBe('succeeded');
-      expect(Number(payment?.refunded_cents)).toBe(20_000);
+      expect(Number(payment?.refunded_cents)).toBe(PARTIAL);
       expect(await paidStatus(vid)).toBe('paid');
       const [notice] = await notificationsFor(client.id, 'payment_partially_refunded', vid);
       expect(notice).toBeTruthy();
@@ -173,7 +180,7 @@ describe.skipIf(!dbUp)('refunds and chargebacks', () => {
       // against a $1,190.00 payment read "200 usd of 1190": three ambiguities
       // in one sentence about money, sent to the client and to the billing
       // group.
-      expect(notice!.body).toContain(formatMoneyCents(20_000, 'usd'));
+      expect(notice!.body).toContain(formatMoneyCents(PARTIAL, 'usd'));
       expect(notice!.body).toContain(formatMoneyCents(PRICE, 'usd'));
       expect(notice!.body).not.toMatch(/\b\d+ usd\b/);
     });
@@ -462,7 +469,7 @@ describe.skipIf(!dbUp)('refunds and chargebacks', () => {
           id: 'ch_totals_partial',
           payment_intent: 'pi_totals_partial',
           amount: PRICE,
-          amount_refunded: 19_000,
+          amount_refunded: PARTIAL_TOTALS,
         }),
       );
 
@@ -474,8 +481,8 @@ describe.skipIf(!dbUp)('refunds and chargebacks', () => {
       expect(res.statusCode).toBe(200);
       expect(res.json().billing.totals).toEqual({
         gross_cents: PRICE * 3,
-        refunded_cents: PRICE + 19_000,
-        paid_cents: PRICE * 3 - PRICE - 19_000,
+        refunded_cents: PRICE + PARTIAL_TOTALS,
+        paid_cents: PRICE * 3 - PRICE - PARTIAL_TOTALS,
         succeeded_count: 2,
         refunded_count: 1,
         payment_count: 3,
