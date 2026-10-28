@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { databaseUnavailableReason } from './failure.js';
+import { REQUEST_ID_HEADER } from './requestContext.js';
 
 /**
  * Scrubs secrets/PII that can slip into a free text (audit B-1 P3). Pino's
@@ -499,6 +500,21 @@ const REASON_PHRASES: Readonly<Record<number, string>> = {
  * and never leaks internals on 5xx.
  */
 export function registerProblemHandler(app: FastifyInstance): void {
+  /*
+   * Every response says which request it was, and every 5xx body repeats it.
+   *
+   * The id was resolved, bound and forwarded to the engine and AI calls, and
+   * then never handed back: a 500 said "Internal Server Error" and nothing a
+   * caller could quote, so "it broke at 14:02" was the whole of a support
+   * ticket and the log line that explained it had to be found by guessing.
+   * Echoed as a header on everything — a caller that keeps it can always
+   * cite it — and as `request_id` on server errors, the ones that need it.
+   */
+  app.addHook('onRequest', (req, reply, done) => {
+    void reply.header(REQUEST_ID_HEADER, String(req.id));
+    done();
+  });
+
   app.setErrorHandler((err: unknown, req: FastifyRequest, reply: FastifyReply) => {
     if (err instanceof ApiProblem) {
       if (err.retryAfterSeconds !== undefined) {
@@ -533,7 +549,11 @@ export function registerProblemHandler(app: FastifyInstance): void {
         if (err.expected) req.log.warn(fields, 'request refused');
         else req.log.error(fields, 'request failed');
       }
-      return reply.status(err.status).type('application/problem+json').send(err.toBody(scrubUrl(req.url)));
+      const body = err.toBody(scrubUrl(req.url));
+      return reply
+        .status(err.status)
+        .type('application/problem+json')
+        .send(err.status >= 500 ? { ...body, request_id: String(req.id) } : body);
     }
     const fastifyErr = err as { statusCode?: number; message?: string; code?: string };
     const status = fastifyErr.statusCode && fastifyErr.statusCode < 500 ? fastifyErr.statusCode : 500;
@@ -572,6 +592,7 @@ export function registerProblemHandler(app: FastifyInstance): void {
         status: 503,
         detail: 'The database is temporarily unable to serve this request. Nothing was changed.',
         instance: scrubUrl(req.url),
+        request_id: String(req.id),
       });
     }
     if (status >= 500) {
@@ -594,6 +615,7 @@ export function registerProblemHandler(app: FastifyInstance): void {
         title: 'Internal Server Error',
         status,
         instance: scrubUrl(req.url),
+        request_id: String(req.id),
       });
     }
     // A 4xx fastify raised describes the *request*, so its message is safe to

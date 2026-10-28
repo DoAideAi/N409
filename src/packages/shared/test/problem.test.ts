@@ -249,7 +249,11 @@ describe('registerProblemHandler', () => {
       title: 'Internal Server Error',
       status: 500,
       instance: '/boom',
+      // The one thing a caller can quote back, and the same id the log line
+      // carries — so a support ticket can name the failure.
+      request_id: res.headers['x-request-id'],
     });
+    expect(res.json().request_id).toEqual(expect.any(String));
     expect(res.body).not.toContain('s3cr3t');
     expect(res.body).not.toContain('db.internal');
     await app.close();
@@ -594,7 +598,25 @@ describe('5xx log context', () => {
       title: 'Internal Server Error',
       status: 500,
       instance: '/valuations/01J0/report',
+      request_id: res.headers['x-request-id'],
     });
+  });
+
+  it('hands every response its request id, so any answer can be traced', async () => {
+    const app = Fastify({ logger: false });
+    registerProblemHandler(app);
+    app.get('/ok', () => ({ ok: true }));
+    app.get('/refused', () => {
+      throw new ApiProblem({ status: 409, title: 'Conflict', type: 'urn:n409:problem:conflict' });
+    });
+    const ok = await app.inject({ method: 'GET', url: '/ok' });
+    const refused = await app.inject({ method: 'GET', url: '/refused' });
+    expect(ok.headers['x-request-id']).toEqual(expect.any(String));
+    expect(refused.headers['x-request-id']).toEqual(expect.any(String));
+    // A 4xx is the caller's to fix and already says how; only server errors
+    // repeat the id in the body.
+    expect(refused.json().request_id).toBeUndefined();
+    await app.close();
   });
 
   it('works on a request that matched no route at all', () => {
