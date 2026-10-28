@@ -431,14 +431,24 @@ export const MAX_SCENARIO_FMVS = 20;
  * added a $0 scenario nobody asked for — a priced row on the panel that the
  * client never wrote. A blank term is absent, like a non-numeric or negative
  * one, rather than a present zero; an explicit `0` still counts.
+ *
+ * A term has to be written as a decimal before `Number` sees it (C102 M6).
+ * `Number` also reads `0x10` as 16, `0b11` as 3 and `0o17` as 15, so
+ * `?fmvs=0x10` priced a $16 row nobody named. And a finite term is not a
+ * bounded one: `?fmvs=1e308` against a few thousand options made `grossValue`
+ * Infinity, which JSON writes as `null` — a blank where a dollar figure goes.
+ * The cap is the one a create body puts on `exercise_price`.
  */
+const DECIMAL_TERM = /^(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
+export const MAX_SCENARIO_FMV = 1e9;
+
 export function parseScenarioFmvs(q: string): number[] {
   return q
     .split(',')
     .map((s) => s.trim())
-    .filter((s) => s !== '')
+    .filter((s) => DECIMAL_TERM.test(s))
     .map(Number)
-    .filter((n) => Number.isFinite(n) && n >= 0);
+    .filter((n) => Number.isFinite(n) && n >= 0 && n <= MAX_SCENARIO_FMV);
 }
 
 export function defaultScenarioFmvs(currentFmv: number): number[] {

@@ -502,4 +502,18 @@ describe('parseScenarioFmvs — blank terms', () => {
   it('keeps an explicit zero and drops negatives and non-numbers', () => {
     expect(parseScenarioFmvs('0,-1,abc,Infinity,3.5')).toEqual([0, 3.5]);
   });
+
+  it('reads decimals only, not the radix literals Number() accepts (C102 M6)', () => {
+    expect(parseScenarioFmvs('0x10,0X1F,0b11,0o17,4')).toEqual([4]);
+    expect(parseScenarioFmvs('1e3,.5,5.')).toEqual([1000, 0.5, 5]);
+  });
+
+  it('drops a term past the exercise-price cap so no row prices to Infinity', () => {
+    expect(parseScenarioFmvs('1e308,1e9,1000000001')).toEqual([1e9]);
+    const [row] = exerciseScenarios(
+      { totalShares: 2_000_000_000, exercisePrice: 0, currentFmv: 1 },
+      parseScenarioFmvs('1e9'),
+    );
+    expect(Number.isFinite(row!.grossValue)).toBe(true);
+  });
 });
