@@ -296,7 +296,7 @@ export function approachChart(results: ResultsShape, currency: string): ChartSpe
     type: 'bar',
     title: 'Equity value by approach',
     points: points.map((p) => ({
-      label: `${p.label} · ${formatPercent(p.weight, 0)}`,
+      label: `${p.label} · ${formatExactPercent(p.weight, 0)}`,
       value: p.value,
       display: formatCurrency(p.value, currency, 0),
     })),
@@ -355,7 +355,7 @@ export function weightingChart(results: ResultsShape): ChartSpec | null {
     slices: slices.map((s) => ({
       label: s.label,
       value: s.weight,
-      display: formatPercent(s.weight, 0),
+      display: formatExactPercent(s.weight, 0),
     })),
     // The number of approaches, not the number of arcs: a folded tail must not
     // make the centre understate how many approaches were weighted.
