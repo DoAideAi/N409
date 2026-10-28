@@ -5,7 +5,7 @@ import { FaqAccordion } from '../../components/FaqAccordion';
 import { pageMeta } from '../../lib/pageMeta';
 import { ShareResultBar } from '../../components/ShareResultBar';
 import { siteOrigin } from '../../lib/seo';
-import { OFFLINE_DETAIL } from '../../lib/api';
+import { api, describeActionFailure } from '../../lib/api';
 import type { FaqItem } from '../../lib/marketing';
 
 interface ReferralBenefit {
@@ -100,6 +100,15 @@ const REFERRAL_FAQ: FaqItem[] = [
   },
 ];
 
+const ROLE_LABELS: Record<string, string> = {
+  lawyer: 'Startup Lawyer',
+  cfo: 'CFO / Controller',
+  accelerator: 'Accelerator / Incubator',
+  vc: 'Venture Capital',
+  cpa: 'CPA / Accounting Firm',
+  other: 'Other',
+};
+
 export function ReferralPage() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -115,22 +124,27 @@ export function ReferralPage() {
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const res = await fetch('/api/referral-signup', {
+      /*
+       * Through the public contact queue. This posted to `/api/referral-signup`,
+       * which no service has ever served — every application was a 404, and
+       * the page's only test of success mocked the endpoint into existence.
+       * The contact route is the one public, rate-limited intake ops already
+       * read; the role rides in the message, which is where a person reading
+       * the queue will look for it.
+       */
+      await api('/contact', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: {
+          name: formData.name,
+          email: formData.email,
+          company: formData.company || undefined,
+          message: `Referral partner application — role: ${ROLE_LABELS[formData.role] ?? formData.role}`,
+        },
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(
-          body.detail ??
-            `Your application could not be submitted (${res.status}). Nothing was saved — check your entries and try again.`,
-        );
-      }
       setSubmitted(true);
     } catch (err) {
       setSubmitError(
-        err instanceof Error ? err.message : OFFLINE_DETAIL,
+        describeActionFailure(err, 'Your application could not be submitted — nothing was saved.'),
       );
     } finally {
       setSubmitting(false);
@@ -273,12 +287,9 @@ export function ReferralPage() {
                   className="mt-1 w-full rounded-md border border-paper-300 bg-surface px-3 py-2 text-sm text-ink-900 outline-none focus:border-bond-500 focus:ring-1 focus:ring-bond-500"
                 >
                   <option value="">Select your role</option>
-                  <option value="lawyer">Startup Lawyer</option>
-                  <option value="cfo">CFO / Controller</option>
-                  <option value="accelerator">Accelerator / Incubator</option>
-                  <option value="vc">Venture Capital</option>
-                  <option value="cpa">CPA / Accounting Firm</option>
-                  <option value="other">Other</option>
+                  {Object.entries(ROLE_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
                 </select>
               </div>
               {submitError && (

@@ -66,8 +66,6 @@ const SILENT_BY_DESIGN: Record<string, string> = {
     'An unbranded tenant is the norm and platform branding is already applied.',
   'src/components/valuation/ExplanationCard.tsx\t/valuations/${valuationId}/explanation':
     'Purely additive prose beside a figure that stands without it.',
-  'src/pages/BotPromptsPage.tsx\t/admin/prompts/models':
-    'A datalist of suggestions on a free-text field. The field works with no suggestions.',
   'src/components/HelpWidget.tsx\t(none)':
     'Falls back to the built-in topic list, so the widget still answers the questions it shipped with.',
   'src/pages/CommunicationsPage.tsx\t/admin/communication-templates/variables':
@@ -76,8 +74,6 @@ const SILENT_BY_DESIGN: Record<string, string> = {
     'The same palette, on the white-label template editor. It degrades to the three variables the send is typed to require — and the endpoint is ops-only, so a partner administrator may legitimately be refused it.',
   'src/components/GettingStarted.tsx\t/onboarding/progress':
     'A checklist of onboarding steps, additive to the ones the user has ticked by hand. Its own comment says so, and the panel is dismissible.',
-  'src/pages/PartnerPortalPage.tsx\t/partners/mine':
-    'Branding only. The heading falls back to "Your portfolio", which is true of every partner and claims nothing.',
   // The block spelling, in the population since R352.
   'src/lib/realtime.ts\t/api/v1/valuations/${valuationId}/stream':
     'The SSE read loop. Every way out of it — unmount, abort, a dropped socket — is answered below by the reconnect and the presence reset, which is where the failure is handled rather than reported.',
@@ -95,8 +91,6 @@ const SILENT_BY_DESIGN: Record<string, string> = {
     'Marks the parallel engine-inputs read handled while the params read is still in flight. The real handling is the inner await beside it, which sets scenarioLoadError.',
   'src/pages/PaymentRedirectPages.tsx\t/valuations/${valuationId}/payments':
     'The post-checkout poll. A failed poll is transient by assumption and the loop keeps going; the budget running out is reported, by `setTimedOut`.',
-  'src/pages/marketing/ReferralPage.tsx\t/api/referral-signup':
-    'Best-effort signup POST on a marketing landing page. The confirmation is shown regardless; the endpoint may not be wired yet.',
 };
 
 /** Each reason says what the user is told that is not true. */

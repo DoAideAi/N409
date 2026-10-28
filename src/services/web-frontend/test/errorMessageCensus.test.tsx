@@ -277,7 +277,6 @@ describe('a page that cannot reach the server says so', () => {
       'pages/AuditorPortalPage.tsx',
       'pages/ClientIntakePage.tsx',
       'pages/ShareSummaryPage.tsx',
-      'pages/marketing/ReferralPage.tsx',
     ]);
     for (const { rel, text } of handRolled) {
       expect(text, `${rel} no longer reads detail`).toMatch(/\.detail/);

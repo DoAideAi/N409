@@ -67,7 +67,7 @@ describe('ReferralPage', () => {
   });
 
   it('shows success state after form submission', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 200 }));
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 201 }));
     const user = userEvent.setup();
     renderPage();
 
@@ -77,6 +77,26 @@ describe('ReferralPage', () => {
     expect(screen.getByText('Application received')).toBeTruthy();
   });
 
+  it('files the application in the contact queue, a route that exists', async () => {
+    // It posted to /api/referral-signup, which no service serves.
+    const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 201 }));
+    const user = userEvent.setup();
+    renderPage();
+
+    await fillAndSubmit(user);
+    await screen.findByTestId('referral-success');
+
+    const [url, init] = spy.mock.calls[0]!;
+    expect(String(url)).toBe('/api/v1/contact');
+    expect(init?.method).toBe('POST');
+    expect(JSON.parse(String(init?.body))).toEqual({
+      name: 'Jane Doe',
+      email: 'jane@lawfirm.com',
+      company: 'Startup Law LLP',
+      message: 'Referral partner application — role: Startup Lawyer',
+    });
+  });
+
   it('shows error when submission fails', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 500 }));
     const user = userEvent.setup();
@@ -84,7 +104,7 @@ describe('ReferralPage', () => {
 
     await fillAndSubmit(user);
 
-    expect(await screen.findByText(/could not submit/i)).toBeTruthy();
+    expect(await screen.findByText(/could not be submitted/i)).toBeTruthy();
     expect(screen.queryByTestId('referral-success')).toBeNull();
   });
 
@@ -95,7 +115,8 @@ describe('ReferralPage', () => {
 
     await fillAndSubmit(user);
 
-    expect(await screen.findByText(/could not submit/i)).toBeTruthy();
+    expect(await screen.findByText(/could not be submitted/i)).toBeTruthy();
+    expect(screen.queryByText(/Failed to fetch/)).toBeNull();
   });
 
   it('renders FAQ section', () => {
