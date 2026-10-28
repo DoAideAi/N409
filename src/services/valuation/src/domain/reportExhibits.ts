@@ -544,7 +544,7 @@ export function approachExhibit(
     e.method ? esc(e.method.replace(/_/g, ' ')) : '—',
     e.enterprise === null ? '—' : formatCurrency(e.enterprise, currency, 0),
     e.equity === null ? '—' : formatCurrency(e.equity, currency, 0),
-    formatPercent(e.weight, 0),
+    formatExactPercent(e.weight, 0),
     e.equity === null ? '—' : formatCurrency(e.equity * e.weight, currency, 0),
   ]);
   const concluded = num(results.equity_value);
@@ -594,7 +594,7 @@ export function approachExhibit(
         '',
         '',
         '',
-        formatPercent(weightTotal, 0),
+        formatExactPercent(weightTotal, 0),
         concluded === null ? '—' : formatCurrency(concluded, currency, 0),
       ],
     }),
@@ -773,7 +773,7 @@ export function levelOfValueExhibit(
 
   const rows = entries.map((e) => [
     APPROACH_LABELS[e.key] ?? esc(e.key),
-    e.weight === null ? '—' : formatPercent(e.weight, 0),
+    e.weight === null ? '—' : formatExactPercent(e.weight, 0),
     LEVEL_OF_VALUE_NAMES[e.level] ?? esc(e.level),
     LEVEL_OF_VALUE_BASIS[e.key] ?? '',
   ]);
