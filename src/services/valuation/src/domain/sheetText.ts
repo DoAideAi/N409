@@ -116,21 +116,34 @@ export function decodeSheetText(buf: Buffer): string {
   if (startsWith(buf, [0xff, 0xfe, 0x00, 0x00]) || startsWith(buf, [0x00, 0x00, 0xfe, 0xff])) {
     throw new SheetTextError('This file is UTF-32 text — re-save it as UTF-8 CSV and upload it again');
   }
+  const text = decodeText(buf);
+  // Whatever encoding it was read as, a NUL is not something a spreadsheet
+  // writes into a cell — the file is some container this does not recognise,
+  // and reading it as a sheet would report its bytes as column names.
+  //
+  // The UTF-16 branches used to return before reaching this, and they are the
+  // ones that most need it: `looksLikeUtf16` is a guess from where the zero
+  // bytes fall, so a binary file with runs of zeros was "decoded" and its bytes
+  // came back as headers. A lone surrogate is the same verdict for UTF-16 —
+  // half of a character pair no text encoder writes on its own.
+  if (text.includes('\u0000') || hasLoneSurrogate(text)) {
+    throw new SheetTextError(
+      'This file is not a spreadsheet or a text file — upload the cap table as .xlsx or CSV',
+    );
+  }
+  return text;
+}
+
+function decodeText(buf: Buffer): string {
   if (startsWith(buf, [0xff, 0xfe])) return buf.subarray(2).toString('utf16le');
   if (startsWith(buf, [0xfe, 0xff])) return swap16(buf.subarray(2)).toString('utf16le');
   if (!startsWith(buf, [0xef, 0xbb, 0xbf])) {
     if (looksLikeUtf16(buf, 1)) return buf.toString('utf16le');
     if (looksLikeUtf16(buf, 0)) return swap16(buf).toString('utf16le');
   }
+  return isUtf8(buf) ? buf.toString('utf8') : new TextDecoder('windows-1252').decode(buf);
+}
 
-  const text = isUtf8(buf) ? buf.toString('utf8') : new TextDecoder('windows-1252').decode(buf);
-  // Whatever encoding it was read as, a NUL is not something a spreadsheet
-  // writes into a cell — the file is some container this does not recognise,
-  // and reading it as a sheet would report its bytes as column names.
-  if (text.includes('\u0000')) {
-    throw new SheetTextError(
-      'This file is not a spreadsheet or a text file — upload the cap table as .xlsx or CSV',
-    );
-  }
-  return text;
+function hasLoneSurrogate(text: string): boolean {
+  return /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/.test(text);
 }

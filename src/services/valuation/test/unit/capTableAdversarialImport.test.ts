@@ -468,6 +468,30 @@ describe('adversarial imports — encoding', () => {
     expect(parseCsvSheet(emoji).rows[0]?.class).toBe('Common 🚀');
   });
 
+  it('holds UTF-16 to the same not-a-text-file check as every other encoding', () => {
+    // The UTF-16 branches returned before the NUL check ran, so a file read as
+    // UTF-16 — by its BOM, or by `looksLikeUtf16` guessing from where the zero
+    // bytes fall — had its bytes previewed as column names.
+    const withNul = Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from('class,shares\nA\u0000B,1\n', 'utf16le')]);
+    expect(() => decodeSheetText(withNul)).toThrow(SheetTextError);
+    const bigEndian = Buffer.from('class,shares\n\u0000,1\n', 'utf16le');
+    for (let i = 0; i + 1 < bigEndian.length; i += 2) [bigEndian[i], bigEndian[i + 1]] = [bigEndian[i + 1]!, bigEndian[i]!];
+    expect(() => decodeSheetText(Buffer.concat([Buffer.from([0xfe, 0xff]), bigEndian]))).toThrow(SheetTextError);
+  });
+
+  it('refuses UTF-16 with half a surrogate pair, which no text encoder writes', () => {
+    const lone = Buffer.concat([
+      Buffer.from([0xff, 0xfe]),
+      Buffer.from('class,shares\nA', 'utf16le'),
+      Buffer.from([0x00, 0xd8]), // U+D800 with nothing after it
+      Buffer.from(',1\n', 'utf16le'),
+    ]);
+    expect(() => decodeSheetText(lone)).toThrow(SheetTextError);
+    // A real pair is a character, and stays one.
+    const pair = 'class,shares\nCommon 🚀,1\n';
+    expect(decodeSheetText(Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(pair, 'utf16le')]))).toBe(pair);
+  });
+
   it('names a password-protected workbook instead of reading it as text', () => {
     // Encrypted OOXML is an OLE2 compound file, not a ZIP — so `looksLikeXlsx`
     // says no — and its extension is `.xlsx`, which the legacy-format branch
