@@ -194,6 +194,14 @@ export function ValuationEstimatorPage(): React.JSX.Element {
     (annualRevenue !== '' || totalFunding !== '') &&
     industry !== undefined &&
     stage !== undefined;
+  // A greyed-out button that says nothing leaves a visitor guessing which of
+  // four fields it is waiting on; this names the ones still missing.
+  const missing = [
+    annualRevenue === '' && totalFunding === '' ? 'revenue or total funding' : null,
+    industry === undefined ? 'an industry' : null,
+    stage === undefined ? 'a stage' : null,
+  ].filter(Boolean);
+  const estimateBlockedReason = canEstimate ? undefined : `Enter ${missing.join(', ')} to estimate`;
 
   function handleEstimate() {
     if (!industry || !stage) return;
@@ -356,6 +364,7 @@ export function ValuationEstimatorPage(): React.JSX.Element {
             <button
               type="button"
               disabled={!canEstimate}
+              title={estimateBlockedReason}
               onClick={handleEstimate}
               data-testid="estimate-button"
               className="rounded-md bg-bond-600 px-5 py-2.5 text-sm font-semibold text-bond-fg shadow-card transition-colors hover:bg-bond-700 disabled:opacity-60 disabled:cursor-not-allowed"

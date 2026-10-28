@@ -264,7 +264,17 @@ export function PartnerPortalPage() {
                 />
               </div>
             )}
-            <Button type="submit" disabled={busy || !name.trim() || (needsPassword && !password)}>
+            <Button
+              type="submit"
+              disabled={busy || !name.trim() || (needsPassword && !password)}
+              title={
+                !busy && !name.trim()
+                  ? 'Give the token a name first'
+                  : !busy && needsPassword && !password
+                    ? 'Enter your current password to confirm this change'
+                    : undefined
+              }
+            >
               {busy ? 'Creating…' : 'Create token'}
             </Button>
           </form>

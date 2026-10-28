@@ -832,6 +832,11 @@ export function AdminUsersPage() {
               <Button
                 type="submit"
                 disabled={busy || (editor.mode !== 'edit' && needsReauth && !editor.current_password)}
+                title={
+                  !busy && editor.mode !== 'edit' && needsReauth && !editor.current_password
+                    ? 'Enter your current password to confirm this change'
+                    : undefined
+                }
               >
                 {busy
                   ? 'Saving…'

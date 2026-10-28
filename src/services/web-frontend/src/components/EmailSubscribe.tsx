@@ -62,6 +62,7 @@ export function EmailSubscribe() {
       <button
         type="submit"
         disabled={status === 'submitting'}
+        title={status === 'submitting' ? 'Subscribing — one moment' : undefined}
         className="shrink-0 rounded-md bg-bond-600 px-5 py-2 text-sm font-semibold text-bond-fg shadow-card transition-colors hover:bg-bond-700 disabled:opacity-60"
       >
         {status === 'submitting' ? 'Subscribing…' : 'Subscribe'}

@@ -241,7 +241,11 @@ export function AdminSsoPage() {
           </Field>
         )}
         <div className="flex items-center gap-3">
-          <Button type="submit" disabled={busy || (needsPassword && !samlPassword)}>
+          <Button
+            type="submit"
+            disabled={busy || (needsPassword && !samlPassword)}
+            title={!busy && needsPassword && !samlPassword ? 'Enter your current password to confirm this change' : undefined}
+          >
             {busy ? 'Saving…' : 'Save SAML config'}
           </Button>
           <a
@@ -268,7 +272,12 @@ export function AdminSsoPage() {
                 className="!w-56"
               />
             )}
-            <Button type="submit" variant="secondary" disabled={needsPassword && !scimPassword}>
+            <Button
+              type="submit"
+              variant="secondary"
+              disabled={needsPassword && !scimPassword}
+              title={needsPassword && !scimPassword ? 'Enter your current password to confirm this change' : undefined}
+            >
               New token
             </Button>
           </div>

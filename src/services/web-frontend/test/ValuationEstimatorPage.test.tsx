@@ -23,6 +23,13 @@ function renderPage() {
 }
 
 describe('ValuationEstimatorPage', () => {
+  it('says what the disabled estimate button is waiting for', () => {
+    renderPage();
+    const button = screen.getByTestId('estimate-button');
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute('title', 'Enter revenue or total funding, an industry, a stage to estimate');
+  });
+
   it('renders the heading and input form', () => {
     renderPage();
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Startup Valuation Estimator');
