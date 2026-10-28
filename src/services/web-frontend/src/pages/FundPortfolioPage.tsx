@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api, describeActionFailure } from '../lib/api';
+import { api, describeActionFailure, describeLoadFailure } from '../lib/api';
 import {
   all,
   integer,
@@ -642,12 +642,27 @@ function PositionRow({
   const [error, setError] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
 
+  const [marksError, setMarksError] = useState<string | null>(null);
+
+  /*
+   * Catches its own failure. It used to throw, and both callers were wrong
+   * about it: opening the row fired it as `void loadMarks()`, so a failed read
+   * was an unhandled rejection and the history sat on a spinner forever; and
+   * recording a mark awaited it inside the record's own `try`, so a refresh
+   * that failed *after* the mark was saved reported "Could not record the
+   * mark" — and skipped `onChange`, leaving the position's latest mark stale.
+   */
   const loadMarks = useCallback(async () => {
-    const { marks: m, truncated } = await api<{ marks: Mark[]; truncated: boolean }>(
-      `/funds/${fundId}/positions/${position.id}/marks`,
-    );
-    setMarks(m);
-    setMarksCapped(truncated);
+    setMarksError(null);
+    try {
+      const { marks: m, truncated } = await api<{ marks: Mark[]; truncated: boolean }>(
+        `/funds/${fundId}/positions/${position.id}/marks`,
+      );
+      setMarks(m);
+      setMarksCapped(truncated);
+    } catch (err) {
+      setMarksError(describeLoadFailure(err, 'The mark history could not be loaded.'));
+    }
   }, [fundId, position.id]);
 
   const toggle = () => {
@@ -794,8 +809,11 @@ function PositionRow({
             <h3 id="mark-history-heading" className="overline mb-1 text-ink-400">
               Mark history
             </h3>
+            {/* Above the history rather than instead of it: a refresh that
+                fails after a mark is recorded still has the earlier list. */}
+            {marksError && <LoadError message={marksError} onRetry={() => void loadMarks()} />}
             {!marks ? (
-              <Spinner />
+              marksError ? null : <Spinner />
             ) : marks.length === 0 ? (
               <p className="text-xs text-ink-400">No marks yet.</p>
             ) : (

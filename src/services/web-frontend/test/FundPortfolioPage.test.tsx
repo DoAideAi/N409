@@ -67,12 +67,15 @@ interface Overrides {
   marks?: unknown[];
   /** Engagements of kind `fund` the link picker may offer. */
   engagements?: { id: string; company_name: string }[];
+  /** Which mark-history reads (1-based) answer 503. */
+  marksFailOn?: number[];
   /** Return a Response to answer a write yourself; undefined falls through. */
   onWrite?: (path: string, body: Record<string, unknown>) => Response | undefined;
 }
 
 function mockApi(over: Overrides = {}) {
   const sent: Sent[] = [];
+  let marksReads = 0;
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
     const path = String(url);
     const method = init?.method ?? 'GET';
@@ -86,6 +89,8 @@ function mockApi(over: Overrides = {}) {
       return jsonResponse({});
     }
     if (path.includes('/positions/') && path.endsWith('/marks')) {
+      marksReads += 1;
+      if (over.marksFailOn?.includes(marksReads)) return new Response('{}', { status: 503 });
       return jsonResponse({ marks: over.marks ?? [] });
     }
     if (path.includes('/valuations?')) return jsonResponse({ valuations: over.engagements ?? [] });
@@ -386,6 +391,34 @@ describe('FundPortfolioPage', () => {
     await user.click(row); // collapse
     await user.click(row); // re-expand — history is already in hand
     expect((globalThis.fetch as unknown as { mock: { calls: unknown[] } }).mock.calls.length).toBe(before);
+  });
+
+  it('shows a failed history read with a retry, not a spinner that never ends', async () => {
+    mockApi({ marksFailOn: [1] });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: /Acme/ }));
+    expect(await screen.findByText(/mark history could not be loaded/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(await screen.findByText('No marks yet.')).toBeInTheDocument();
+  });
+
+  it('does not blame the record when only the refresh after it fails', async () => {
+    // The open reads the history, the record succeeds, and the re-read fails.
+    const sent = mockApi({ marksFailOn: [2] });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: /Acme/ }));
+    await screen.findByText('No marks yet.');
+    await user.type(await screen.findByLabelText('Quoted price'), '12.5');
+    await user.click(screen.getByRole('button', { name: 'Record mark' }));
+
+    await waitFor(() => expect(sent).toHaveLength(1));
+    expect(await screen.findByText(/mark history could not be loaded/)).toBeInTheDocument();
+    expect(screen.queryByText(/Could not record the mark/)).not.toBeInTheDocument();
   });
 
   it('says so when a position has no marks yet', async () => {
