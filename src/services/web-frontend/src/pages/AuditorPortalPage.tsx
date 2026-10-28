@@ -5,6 +5,7 @@ import { Button, ErrorNote, Field, inputClass, ListTruncationNote, Spinner } fro
 import { required, useFormValidation } from '../lib/useFormValidation';
 import { formatDate, formatExactPercent, kindLabel, moneyFormatter, PER_SHARE_DIGITS, stateLabel } from '../lib/format';
 import { sanitizeHtml } from '../lib/m2';
+import { describeFetchFailure } from '../lib/fetchFailure';
 
 interface Section {
   heading: string;
@@ -171,10 +172,11 @@ export function AuditorPortalPage() {
       .then(setBundle)
       .catch((err) =>
         setError(
-          err instanceof Error && err.message
-            ? err.message
-            : 'This page could not reach the valuation service. Check your connection and reload; ' +
-                'your link does not need replacing.',
+          describeFetchFailure(
+            err,
+            'This page could not reach the valuation service. Check your connection and reload; ' +
+              'your link does not need replacing.',
+          ),
         ),
       );
   }, []);
@@ -412,11 +414,7 @@ function NoteForm({ token }: { token: string }) {
       // auditor can retry it rather than making them write it again.
       setBody('');
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'Your note could not be sent — check your connection and try again.',
-      );
+      setError(describeFetchFailure(err, 'Your note could not be sent — check your connection and try again.'));
     } finally {
       setBusy(false);
     }

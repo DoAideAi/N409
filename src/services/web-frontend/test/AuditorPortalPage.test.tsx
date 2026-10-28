@@ -123,6 +123,15 @@ describe('AuditorPortalPage access', () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
+  it('explains an unreachable server rather than printing “Failed to fetch”', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'));
+    window.location.hash = '#token=abc123';
+    render(<AuditorPortalPage />);
+
+    expect(await screen.findByText(/could not reach the valuation service/)).toBeInTheDocument();
+    expect(screen.queryByText(/Failed to fetch/)).not.toBeInTheDocument();
+  });
+
   it('surfaces the server’s reason for refusing a token', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       jsonResponse({ title: 'Gone', detail: 'This auditor link has expired.' }, 410),
