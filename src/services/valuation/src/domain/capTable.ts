@@ -269,6 +269,9 @@ function normalizeDecimalSeparator(digits: string): string {
  */
 const CURRENCY_SYMBOLS = /[\p{Sc}]/gu;
 
+/** An unsigned decimal, optionally with an exponent — what is left of a figure once its symbols and separators are resolved. */
+const DECIMAL_FIGURE = /^(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
+
 /**
  * Parse a money/number cell: strips currency symbols and whitespace, resolves
  * the decimal separator (see {@link normalizeDecimalSeparator}); '' → null.
@@ -307,7 +310,12 @@ export function parseNumericCell(value: unknown): number | null {
   // The sign travels separately: the grouping test is about the digits, and
   // `-1,234` groups exactly as `1,234` does.
   const sign = /^[+-]/.test(cleaned) ? cleaned[0]! : '';
-  const n = Number(sign + normalizeDecimalSeparator(sign ? cleaned.slice(1) : cleaned));
+  const digits = normalizeDecimalSeparator(sign ? cleaned.slice(1) : cleaned);
+  // `Number` reads more than decimals: `0x10` is 16, `0b11` is 3, `0o17` is 15.
+  // None of those is a way a spreadsheet writes a figure, and a share count of
+  // `0x10` imported as sixteen shares rather than as a cell nobody could read.
+  if (!DECIMAL_FIGURE.test(digits)) return null;
+  const n = Number(sign + digits);
   if (!Number.isFinite(n)) return null;
   // `n !== 0` keeps `(0)` from becoming -0, which formats as "-0".
   return negated && n !== 0 ? -n : n;

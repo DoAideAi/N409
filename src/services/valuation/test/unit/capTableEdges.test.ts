@@ -3,7 +3,9 @@ import {
   parseCapTable,
   parseCsv,
   parseCsvSheet,
+  parseMultipleCell,
   parseNumericCell,
+  parseRatioCell,
   sniffDelimiter,
   toWaterfallInputs,
   validateCapTable,
@@ -475,5 +477,30 @@ describe('validateCapTable — a derived figure that overflows', () => {
       }),
     ];
     expect(codes(rows)).not.toContain('figure_overflows');
+  });
+});
+
+describe('parseNumericCell reads decimals only (C102 M1)', () => {
+  it('refuses the radix literals Number() would otherwise read', () => {
+    // `Number('0x10')` is 16: a share count of "0x10" imported as sixteen shares.
+    for (const cell of ['0x10', '0X1F', '0b11', '0o17', '$0x10', '(0x10)']) {
+      expect(parseNumericCell(cell)).toBeNull();
+      expect(parseMultipleCell(cell)).toBeNull();
+      expect(parseRatioCell(cell)).toBeNull();
+    }
+  });
+
+  it('still reads every decimal spelling it did', () => {
+    expect(parseNumericCell('1e3')).toBe(1000);
+    expect(parseNumericCell('.5')).toBe(0.5);
+    expect(parseNumericCell('5.')).toBe(5);
+    expect(parseNumericCell('+5')).toBe(5);
+    expect(parseNumericCell('-$5')).toBe(-5);
+    expect(parseNumericCell('(1,000)')).toBe(-1000);
+    expect(parseNumericCell('€1.234,56')).toBe(1234.56);
+    expect(parseNumericCell('1,00,000')).toBe(100000);
+    expect(parseNumericCell('00012')).toBe(12);
+    expect(parseMultipleCell('1.5x')).toBe(1.5);
+    expect(parseRatioCell('2:1')).toBe(2);
   });
 });
