@@ -33,6 +33,7 @@ function PlanSelector({
         <button
           key={tier.tier}
           type="button"
+          aria-pressed={selected === tier.tier}
           onClick={() => onSelect(tier.tier)}
           className={`rounded-lg border p-5 text-left transition-colors ${
             selected === tier.tier

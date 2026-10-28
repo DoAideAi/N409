@@ -233,6 +233,7 @@ export function CostComparisonPage() {
             <button
               key={s.value}
               type="button"
+              aria-pressed={stage === s.value}
               onClick={() => setStage(s.value)}
               className={`cursor-pointer rounded-lg border px-4 py-3 text-left transition-colors ${
                 stage === s.value
