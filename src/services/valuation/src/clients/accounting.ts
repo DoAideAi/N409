@@ -317,8 +317,18 @@ export async function exchangeCode(
 
 // ── Import parsers ────────────────────────────────────────────────────────────
 
+/**
+ * A ledger cell as cents, or null when the cell holds no figure (C102 M6).
+ *
+ * `Number('')` is 0, and an empty cell is how a P&L writes a period it has no
+ * figure for — a Xero comparison column for the company's first year comes
+ * back as `""`. That imported as a stated prior-year revenue of $0, which is a
+ * growth rate nobody reported. `Number` also reads `0x10` as 16.
+ */
+const LEDGER_DECIMAL = /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
 const toCents = (v: unknown): number | null => {
-  const n = typeof v === 'string' ? Number(v) : typeof v === 'number' ? v : NaN;
+  const n =
+    typeof v === 'string' ? (LEDGER_DECIMAL.test(v.trim()) ? Number(v.trim()) : NaN) : typeof v === 'number' ? v : NaN;
   return Number.isFinite(n) ? Math.round(n * 100) : null;
 };
 

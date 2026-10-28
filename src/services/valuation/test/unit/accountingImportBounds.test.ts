@@ -193,3 +193,27 @@ describe('profit-and-loss header text', () => {
     expect(pl.period_end).toBe('2026-08-31');
   });
 });
+
+describe('an empty ledger cell is no figure (C102 M6)', () => {
+  const xero = (current: string, prior: string) => ({
+    Reports: [{ Rows: [{ Rows: [{ Cells: [{ Value: 'Total Income' }, { Value: current }, { Value: prior }] }] }] }],
+  });
+
+  it('reads a blank comparison cell as absent rather than as $0 of prior revenue', () => {
+    expect(parseXeroProfitAndLoss(xero('1250.50', ''))).toMatchObject({
+      revenue_cents: 125050,
+      prior_year_revenue_cents: null,
+    });
+    expect(parseXeroProfitAndLoss(xero(' ', '0'))).toMatchObject({
+      revenue_cents: null,
+      prior_year_revenue_cents: 0,
+    });
+  });
+
+  it('reads decimals only', () => {
+    expect(parseXeroProfitAndLoss(xero('0x10', '-12.5'))).toMatchObject({
+      revenue_cents: null,
+      prior_year_revenue_cents: -1250,
+    });
+  });
+});
