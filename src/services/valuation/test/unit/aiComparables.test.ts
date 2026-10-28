@@ -77,6 +77,13 @@ describe('ebitdaFor', () => {
   it('is null without a revenue to apply the margin to', () => {
     expect(ebitdaFor(comp({ revenue: null }))).toBeNull();
   });
+
+  it('is null for a margin the model left blank, not $0 of EBITDA (C102 M6)', () => {
+    expect(ebitdaFor(comp({ revenue: 100, ebitda_margin: '' }))).toBeNull();
+    expect(ebitdaFor(comp({ revenue: 100, ebitda_margin: '  ' }))).toBeNull();
+    expect(ebitdaFor(comp({ revenue: '', ebitda_margin: 0.25 }))).toBeNull();
+    expect(ebitdaFor(comp({ revenue: '100', ebitda_margin: '0.25' }))).toBe(25);
+  });
 });
 
 describe('mapAgentComparables', () => {

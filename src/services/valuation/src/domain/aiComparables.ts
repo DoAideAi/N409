@@ -47,6 +47,7 @@
  */
 
 import type { ComparableFiguresSource } from './comparables.js';
+import { readDecimal } from './decimalText.js';
 import { sliceChars } from './textSlice.js';
 
 /** An input problem the analyst has to fix — the route maps it to a 422. */
@@ -157,11 +158,9 @@ function str(value: unknown, limit: number): string | null {
   return trimmed === '' ? null : sliceChars(trimmed, limit);
 }
 
-function fin(value: unknown): number | null {
-  if (typeof value !== 'number' && typeof value !== 'string') return null;
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
+// Through `readDecimal`: `Number('')` is 0, so a model writing an unknown
+// margin as `""` stored the peer's EBITDA as $0 rather than as unknown (C102 M6).
+const fin = readDecimal;
 
 /** Positive-only: a non-positive denominator implies no usable multiple. */
 function positive(value: unknown): number | null {

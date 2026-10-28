@@ -26,6 +26,7 @@
 import { isIsoCalendarDate } from '@n409/shared';
 import type { ValuationKind } from './valuation.js';
 import { numberFormat } from './numberFormat.js';
+import { readDecimal } from './decimalText.js';
 
 export type HmrcScheme = 'emi' | 'csop';
 export type HmrcFormCode = 'VAL230' | 'VAL231';
@@ -89,14 +90,8 @@ function str(value: unknown): string | null {
   return trimmed === '' ? null : trimmed;
 }
 
-function num(value: unknown): number | null {
-  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
-  if (typeof value === 'string' && value.trim() !== '') {
-    const n = Number(value);
-    return Number.isFinite(n) ? n : null;
-  }
-  return null;
-}
+// The intake answers' reading, so `0x10` is not sixteen here either (C102 M6).
+const num = readDecimal;
 
 /**
  * Money on these forms is GBP: EMI and CSOP are UK statutory schemes and the
