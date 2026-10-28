@@ -66,6 +66,25 @@ describe('ShareSummaryPage', () => {
     });
   });
 
+  it('describes an unreachable server without the browser’s own error text', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'));
+    renderPage();
+    expect(await screen.findByText(/Could not reach the server/)).toBeTruthy();
+    expect(screen.queryByText(/Failed to fetch/)).toBeNull();
+  });
+
+  it('describes an unreadable response without the parser’s error text', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => {
+        throw new SyntaxError('Unexpected token < in JSON at position 0');
+      },
+    } as unknown as Response);
+    renderPage();
+    expect(await screen.findByText('Could not load the valuation summary. Try reloading the page.')).toBeTruthy();
+    expect(screen.queryByText(/Unexpected token/)).toBeNull();
+  });
+
   it('shows error for not-found token', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: false,

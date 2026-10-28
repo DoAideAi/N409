@@ -50,11 +50,17 @@ export function ShareSummaryPage() {
         setSummary(await res.json());
       })
       .catch((err: unknown) => {
+        // Never the exception's own text: on this public page that read "Could
+        // not load the valuation summary: Failed to fetch" (or Safari's "Load
+        // failed", or a JSON parser's "Unexpected token <" when a proxy answered
+        // with HTML) — browser internals, to a reader who was sent a link. A
+        // rejected fetch is a TypeError and means the server was not reached;
+        // anything else is a response this page could not read.
         if (!controller.signal.aborted)
           setError(
-            err instanceof Error && err.message
-              ? `Could not load the valuation summary: ${err.message}`
-              : 'Could not reach the server to load the valuation summary. Check your connection and reload the page.',
+            err instanceof TypeError
+              ? 'Could not reach the server to load the valuation summary. Check your connection and reload the page.'
+              : 'Could not load the valuation summary. Try reloading the page.',
           );
       })
       .finally(() => {
