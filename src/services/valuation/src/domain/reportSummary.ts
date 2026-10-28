@@ -121,6 +121,9 @@ export function formatCurrency(value: number, currency: string, fractionDigits =
       currency,
       minimumFractionDigits: fractionDigits,
       maximumFractionDigits: fractionDigits,
+      // `-0` and an amount that rounds to nothing print as "$0.00", not
+      // "-$0.00" — on a report that reads as a credit of nothing.
+      signDisplay: 'negative',
     }).format(value);
   } catch {
     // An unknown ISO code must not sink a report render.
@@ -128,8 +131,13 @@ export function formatCurrency(value: number, currency: string, fractionDigits =
   }
 }
 
+/** A fixed-point figure with no sign when every digit of it is zero: "-0.0" is "0.0". */
+function withoutNegativeZero(fixed: string): string {
+  return /^-0(\.0+)?$/.test(fixed) ? fixed.slice(1) : fixed;
+}
+
 export function formatPercent(fraction: number, digits = 1): string {
-  return `${(fraction * 100).toFixed(digits)}%`;
+  return `${withoutNegativeZero((fraction * 100).toFixed(digits))}%`;
 }
 
 /**
@@ -154,9 +162,9 @@ export function formatExactPercent(fraction: number, minDigits = 1, maxDigits = 
   for (let d = minDigits; d < maxDigits; d += 1) {
     // Exact at this many places — the reader multiplying by what they read
     // reproduces the figure beside it.
-    if (Math.abs(Number(pct.toFixed(d)) - pct) < 1e-9) return `${pct.toFixed(d)}%`;
+    if (Math.abs(Number(pct.toFixed(d)) - pct) < 1e-9) return `${withoutNegativeZero(pct.toFixed(d))}%`;
   }
-  return `${pct.toFixed(maxDigits)}%`;
+  return `${withoutNegativeZero(pct.toFixed(maxDigits))}%`;
 }
 
 interface ResultsShape {

@@ -305,7 +305,8 @@ export function isEntryPrice(plan: Pick<PlanLimit, 'interval'>): boolean {
 export function formatMoneyCents(cents: number, currency: string): string {
   const code = (currency || 'usd').trim().toUpperCase();
   try {
-    const format = numberFormat('en-US', { style: 'currency', currency: code });
+    // `negative` so a zero amount, or `-0` from a refund of nothing, prints without a sign.
+    const format = numberFormat('en-US', { style: 'currency', currency: code, signDisplay: 'negative' });
     return format.format(cents / minorUnitScale(format));
   } catch {
     // A code `Intl` cannot parse: the amount is printed beside it rather than
