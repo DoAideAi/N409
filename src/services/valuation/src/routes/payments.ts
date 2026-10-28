@@ -73,7 +73,7 @@ import type { EmailTransport, SupportEmailSource } from '../hooks/stateChange.js
 import { applyValuationState } from '../domain/applyState.js';
 import { findUserById, listUserIdsWithRoles } from '../repos/users.js';
 import { BILLING_ALERT_ROLES } from '../domain/roles.js';
-import { parseStripeEvent, stripeEventKey } from '../domain/stripeEvents.js';
+import { checkoutSessionValuationId, parseStripeEvent, stripeEventKey } from '../domain/stripeEvents.js';
 import { classifyStripeEvent, recordStripeEvent } from '../repos/stripeEvents.js';
 import { recordAdminEvent } from '../events/adminRecord.js';
 import type { AdminEventType } from '../domain/auditTrail.js';
@@ -1528,29 +1528,6 @@ export function registerPaymentRoutes(app: FastifyInstance, deps: PaymentDeps): 
     return { received: true, dispute_status: status };
   }
 
-  /**
-   * The engagement a checkout session says it is for, or null when it does not
-   * say — which is how a session opened by something other than this platform
-   * reads.
-   *
-   * Both fields, because `createCheckoutSession` sets both and they are not
-   * equally durable: `client_reference_id` is the documented top-level field
-   * and `metadata.valuation_id` survives being copied onto the objects Stripe
-   * derives from the session. Checked for ULID shape rather than looked up,
-   * so a settled session for an engagement that has since been purged still
-   * reads as ours — which is exactly the case where the row is missing.
-   */
-  function ourValuationId(session: Record<string, unknown>): string | null {
-    const direct = session.client_reference_id;
-    if (typeof direct === 'string' && isUlid(direct)) return direct;
-    const metadata = session.metadata;
-    if (metadata && typeof metadata === 'object') {
-      const tagged = (metadata as Record<string, unknown>).valuation_id;
-      if (typeof tagged === 'string' && isUlid(tagged)) return tagged;
-    }
-    return null;
-  }
-
   // Webhook lives in its own plugin scope so the raw-buffer content parser
   // (required for signature verification) can't leak to other routes.
   void app.register(async (scope) => {
@@ -1706,7 +1683,7 @@ export function registerPaymentRoutes(app: FastifyInstance, deps: PaymentDeps): 
         // discriminator: with it, this is definitively our money gone missing;
         // without it, the session was never ours to reconcile and the old
         // silence is the right answer.
-        const claimed = ourValuationId(session);
+        const claimed = checkoutSessionValuationId(session);
         if (moneySettled && claimed !== null) {
           log.error(
             {

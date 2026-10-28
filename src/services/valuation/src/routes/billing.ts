@@ -54,7 +54,7 @@ import {
 import { createNotifications } from '../repos/notifications.js';
 import { listUserIdsWithRoles } from '../repos/users.js';
 import { BILLING_ALERT_ROLES } from '../domain/roles.js';
-import { parseStripeEvent, stripeEventKey } from '../domain/stripeEvents.js';
+import { ORDER_CHECKOUT_PURPOSE, parseStripeEvent, stripeEventKey } from '../domain/stripeEvents.js';
 import { diffRecords, type AdminEventType } from '../domain/auditTrail.js';
 import { recordAdminEvent } from '../events/adminRecord.js';
 import type { EventActor } from '../events/record.js';
@@ -1860,6 +1860,9 @@ export function registerBillingRoutes(app: FastifyInstance, deps: BillingDeps): 
       if (plan.interval === 'one_time') {
         session = await createCheckoutSession(deps.stripeSecretKey, {
           valuationId: principal.id,
+          // A plan, not an engagement: tagged so the payment webhook does not
+          // read the buyer's id as a valuation's (`checkoutSessionValuationId`).
+          purpose: ORDER_CHECKOUT_PURPOSE,
           productName: plan.name,
           amountCents: plan.price_cents,
           currency: plan.currency,

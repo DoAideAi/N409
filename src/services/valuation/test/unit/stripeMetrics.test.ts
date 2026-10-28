@@ -184,3 +184,24 @@ describe('the Stripe request counter', () => {
     expect(app).toMatch(/registerStripeMetrics\(metricsRegistry\)/);
   });
 });
+
+describe('createCheckoutSession — plan orders', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('tags an order session as one, never as a valuation', async () => {
+    const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(() => Promise.resolve(session()));
+    await createCheckoutSession('sk_test', { ...args, valuationId: '01HYYYYYYYYYYYYYYYYYYYYYYY', purpose: 'order' });
+    const body = new URLSearchParams(String(spy.mock.calls[0]![1]!.body));
+    expect(body.get('metadata[purpose]')).toBe('order');
+    expect(body.get('metadata[user_id]')).toBe('01HYYYYYYYYYYYYYYYYYYYYYYY');
+    expect(body.has('metadata[valuation_id]')).toBe(false);
+  });
+
+  it('still stamps an engagement payment with its valuation id', async () => {
+    const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(() => Promise.resolve(session()));
+    await createCheckoutSession('sk_test', args);
+    const body = new URLSearchParams(String(spy.mock.calls[0]![1]!.body));
+    expect(body.get('metadata[valuation_id]')).toBe(args.valuationId);
+    expect(body.has('metadata[purpose]')).toBe(false);
+  });
+});

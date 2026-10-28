@@ -5,6 +5,8 @@ import {
   stripeEventKey,
   SUBSCRIPTION_STATE_EVENTS,
   supersedingTypes,
+  checkoutSessionValuationId,
+  ORDER_CHECKOUT_PURPOSE,
 } from '../../src/domain/stripeEvents.js';
 
 /**
@@ -204,5 +206,44 @@ describe('a failed invoice is a writer of subscription state too', () => {
     for (const type of SUBSCRIPTION_STATE_EVENTS) {
       expect(supersedingTypes(type)).toEqual(SUBSCRIPTION_STATE_EVENTS);
     }
+  });
+});
+
+describe('checkoutSessionValuationId', () => {
+  const VAL = '01HZZZZZZZZZZZZZZZZZZZZZZZ';
+  const USER = '01HYYYYYYYYYYYYYYYYYYYYYYY';
+
+  it('claims an engagement payment session by either field', () => {
+    expect(
+      checkoutSessionValuationId({ mode: 'payment', client_reference_id: VAL, metadata: { valuation_id: VAL } }),
+    ).toBe(VAL);
+    expect(checkoutSessionValuationId({ mode: 'payment', metadata: { valuation_id: VAL } })).toBe(VAL);
+  });
+
+  it('does not claim a subscription checkout, whose reference is a user id', () => {
+    // Every new subscription paged "money taken and unreconciled" against the
+    // subscriber's id, read as an engagement's.
+    expect(
+      checkoutSessionValuationId({
+        mode: 'subscription',
+        client_reference_id: USER,
+        metadata: { user_id: USER, plan_tier: 'growth' },
+      }),
+    ).toBeNull();
+  });
+
+  it('does not claim a one-time plan order', () => {
+    expect(
+      checkoutSessionValuationId({
+        mode: 'payment',
+        client_reference_id: USER,
+        metadata: { purpose: ORDER_CHECKOUT_PURPOSE, user_id: USER },
+      }),
+    ).toBeNull();
+  });
+
+  it('does not claim a session some other integration opened', () => {
+    expect(checkoutSessionValuationId({ mode: 'payment', client_reference_id: 'cart-42' })).toBeNull();
+    expect(checkoutSessionValuationId({ mode: 'payment' })).toBeNull();
   });
 });

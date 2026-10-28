@@ -13,6 +13,7 @@
  * migration 0155 for why.
  */
 
+import { isUlid } from '@n409/shared';
 import { findUnstorableText, UNSTORABLE_REASONS } from './nulBytes.js';
 
 /** Which endpoint received the delivery. */
@@ -290,4 +291,53 @@ export function parseStripeEvent(raw: Buffer): StripeEventEnvelope | { error: st
   const data = parsed.data;
   const object = isPlainObject(data) && isPlainObject(data.object) ? data.object : {};
   return { type: type ?? '', object, raw: parsed };
+}
+
+/**
+ * The `metadata.purpose` a one-time *plan order* Checkout Session carries.
+ *
+ * The order flow opens a `mode: 'payment'` session for a plan rather than for
+ * an engagement, and used to stamp it `metadata.valuation_id = <buyer's user
+ * id>`. See {@link checkoutSessionValuationId} for what that cost.
+ */
+export const ORDER_CHECKOUT_PURPOSE = 'order';
+
+/**
+ * The engagement a Checkout Session was opened for, or null when it was not
+ * opened for one.
+ *
+ * The payment webhook uses this to decide that a settled session with no
+ * payment row is *our* money gone missing, and pages someone (`alert: true`).
+ * Stripe delivers every `checkout.session.completed` on the account to every
+ * endpoint subscribed to it, so this endpoint also sees the two kinds of
+ * session the billing side opens — and both carry a ULID that is not a
+ * valuation's:
+ *
+ *   * a subscription checkout stamps `client_reference_id` with the user id;
+ *   * a one-time plan order stamped `metadata.valuation_id` with the user id.
+ *
+ * Neither has a payment row, by design, so every new subscription and every
+ * Starter order raised "money taken and unreconciled" against an id that was
+ * never an engagement. Those sessions belong to the billing webhook, which
+ * matches them by session id; here they are not ours to reconcile.
+ *
+ * Otherwise both fields are read, because `createCheckoutSession` sets both
+ * and they are not equally durable: `client_reference_id` is the documented
+ * top-level field and `metadata.valuation_id` survives being copied onto the
+ * objects Stripe derives from the session. Checked for ULID shape rather than
+ * looked up, so a settled session for an engagement since purged still reads
+ * as ours — which is exactly the case where the row is missing.
+ */
+export function checkoutSessionValuationId(session: Record<string, unknown>): string | null {
+  if (session.mode === 'subscription') return null;
+  const metadata =
+    session.metadata && typeof session.metadata === 'object'
+      ? (session.metadata as Record<string, unknown>)
+      : null;
+  if (metadata?.purpose === ORDER_CHECKOUT_PURPOSE) return null;
+  const direct = session.client_reference_id;
+  if (typeof direct === 'string' && isUlid(direct)) return direct;
+  const tagged = metadata?.valuation_id;
+  if (typeof tagged === 'string' && isUlid(tagged)) return tagged;
+  return null;
 }

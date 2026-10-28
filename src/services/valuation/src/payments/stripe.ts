@@ -1,3 +1,4 @@
+import { ORDER_CHECKOUT_PURPOSE } from '../domain/stripeEvents.js';
 import crypto from 'node:crypto';
 import { recordStripeRequest, stripeOutcomeForStatus, type StripeOperation } from './stripeMetrics.js';
 
@@ -339,6 +340,7 @@ function asCheckoutSession(json: Record<string, unknown>, status: number): Check
 export async function createCheckoutSession(
   secretKey: string,
   args: {
+    /** The engagement this charge is for, or — with `purpose: 'order'` — the buyer's user id. */
     valuationId: string;
     productName: string;
     amountCents: number;
@@ -346,6 +348,7 @@ export async function createCheckoutSession(
     successUrl: string;
     cancelUrl: string;
     customerEmail?: string;
+    purpose?: typeof ORDER_CHECKOUT_PURPOSE;
   },
 ): Promise<CheckoutSession> {
   const body = encodeForm({
@@ -354,7 +357,10 @@ export async function createCheckoutSession(
     success_url: args.successUrl,
     cancel_url: args.cancelUrl,
     customer_email: args.customerEmail,
-    metadata: { valuation_id: args.valuationId },
+    metadata:
+      args.purpose === ORDER_CHECKOUT_PURPOSE
+        ? { purpose: ORDER_CHECKOUT_PURPOSE, user_id: args.valuationId }
+        : { valuation_id: args.valuationId },
     line_items: [
       {
         quantity: 1,
