@@ -8,6 +8,7 @@
 
 import { isIsoCalendarDate } from '@n409/shared';
 import { isStorableEmail, MAX_EMAIL_LENGTH } from '../domain/email.js';
+import { readDecimal } from '../domain/decimalText.js';
 import { INT4_MAX } from '../domain/int4.js';
 import { clampScheduleMonths, MAX_GRANTEE_NAME } from '../domain/vesting.js';
 import {
@@ -171,16 +172,8 @@ export async function refreshTokens(
  * `Number` reads `0x10` as 16. A blank is absent and the figure must be a
  * decimal once the currency sign and separators are gone.
  */
-const PROVIDER_DECIMAL = /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
-const toNum = (v: unknown): number | null => {
-  if (typeof v === 'string') {
-    const digits = v.replace(/[$,\s]/g, '');
-    if (!PROVIDER_DECIMAL.test(digits)) return null;
-    const n = Number(digits);
-    return Number.isFinite(n) ? n : null;
-  }
-  return typeof v === 'number' && Number.isFinite(v) ? v : null;
-};
+const toNum = (v: unknown): number | null =>
+  readDecimal(typeof v === 'string' ? v.replace(/[$,\s]/g, '') : v);
 /**
  * A provider's date, at day resolution, or null when it is not a day.
  *

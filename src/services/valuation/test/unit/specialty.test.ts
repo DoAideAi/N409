@@ -49,6 +49,25 @@ describe('specialtyEngineRequest', () => {
     expect(req.body.scheme).toBe('csop');
   });
 
+  it('reads a numeric string as a decimal, not as a radix literal (C102 M6)', () => {
+    const req = specialtyEngineRequest('csop', {
+      equity_value: '5000000',
+      total_shares: 1_000_000,
+      options_granted: 10_000,
+      exercise_price: 5,
+      minority_discount: '0x10',
+    });
+    expect('minority_discount' in (req.body.params as Record<string, unknown>)).toBe(false);
+    expect(() =>
+      specialtyEngineRequest('goodwill', {
+        impairment_test: 'long_lived',
+        carrying_amount: 100,
+        fair_value: 60,
+        undiscounted_cash_flows: '40, 0x10',
+      }),
+    ).toThrow(/comma-separated/);
+  });
+
   it('maps the EMI FTE headcount onto the engine employee_count kwarg', () => {
     const req = specialtyEngineRequest('emi', {
       equity_value: 1_000_000,

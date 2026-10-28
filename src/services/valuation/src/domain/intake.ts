@@ -8,6 +8,7 @@
 import { z } from 'zod';
 import { isIsoCalendarDate } from '@n409/shared';
 import { todayLocal } from './calendarDate.js';
+import { readDecimal } from './decimalText.js';
 
 export const INTAKE_EVENT_TYPES = {
   saved: 'intake_saved',
@@ -522,9 +523,6 @@ export const isValidIsoDate = isIsoCalendarDate;
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-/** A signed decimal, optionally with an exponent — the ways a person types a figure. */
-const DECIMAL_ANSWER = /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
-
 /**
  * Answers arrive as JSON, so a number can be a number or the string of one.
  *
@@ -534,14 +532,7 @@ const DECIMAL_ANSWER = /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
  * engagement's params with it. The conversion path shares this reading rather
  * than keeping its own, which is how it came to read a blank `""` as $0.
  */
-export function asNumber(value: unknown): number | null {
-  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
-  if (typeof value === 'string' && DECIMAL_ANSWER.test(value.trim())) {
-    const n = Number(value.trim());
-    return Number.isFinite(n) ? n : null;
-  }
-  return null;
-}
+export const asNumber = readDecimal;
 
 /** Comparable scalar for a cross rule: a number, or a valid date as its epoch. */
 function comparable(value: unknown): number | null {

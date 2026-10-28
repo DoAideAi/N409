@@ -13,6 +13,7 @@
  */
 
 import { todayLocal } from './calendarDate.js';
+import { readDecimal } from './decimalText.js';
 import type { ValuationKind } from './valuation.js';
 
 /** Kinds whose calculation runs through a dedicated specialty engine endpoint. */
@@ -269,15 +270,8 @@ export interface SpecialtyRequest {
 
 type Answers = Record<string, unknown>;
 
-const num = (answers: Answers, key: string): number | null => {
-  const v = answers[key];
-  if (typeof v === 'number' && Number.isFinite(v)) return v;
-  if (typeof v === 'string' && v.trim() !== '') {
-    const n = Number(v);
-    return Number.isFinite(n) ? n : null;
-  }
-  return null;
-};
+// Through `readDecimal`, so an answer of `0x10` is not sixteen (C102 M6).
+const num = (answers: Answers, key: string): number | null => readDecimal(answers[key]);
 
 const str = (answers: Answers, key: string): string | null => {
   const v = answers[key];
@@ -305,13 +299,13 @@ function csvNumbers(value: string | null): number[] | null {
     .map((p) => p.trim())
     .filter((p) => p !== '');
   if (parts.length === 0) return null;
-  const numbers = parts.map(Number);
-  if (numbers.some((n) => !Number.isFinite(n))) {
+  const numbers = parts.map(readDecimal);
+  if (numbers.some((n) => n === null)) {
     throw new SpecialtyInputError(
       'Undiscounted cash flows must be a comma-separated list of numbers, e.g. 120000, 130000, 90000.',
     );
   }
-  return numbers;
+  return numbers as number[];
 }
 
 function qsbsRequest(answers: Answers, overrides: Answers, today: string): SpecialtyRequest {

@@ -22,6 +22,7 @@ import {
   storableProviderText,
   withDeadline,
 } from './deadline.js';
+import { readDecimal } from '../domain/decimalText.js';
 import { refreshOAuthTokens, type RefreshedTokens } from './oauthRefresh.js';
 
 export const ACCOUNTING_PROVIDERS = ['xero', 'quickbooks', 'freshbooks', 'netsuite', 'sage', 'wave'] as const;
@@ -325,11 +326,9 @@ export async function exchangeCode(
  * back as `""`. That imported as a stated prior-year revenue of $0, which is a
  * growth rate nobody reported. `Number` also reads `0x10` as 16.
  */
-const LEDGER_DECIMAL = /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
 const toCents = (v: unknown): number | null => {
-  const n =
-    typeof v === 'string' ? (LEDGER_DECIMAL.test(v.trim()) ? Number(v.trim()) : NaN) : typeof v === 'number' ? v : NaN;
-  return Number.isFinite(n) ? Math.round(n * 100) : null;
+  const n = readDecimal(v);
+  return n === null ? null : Math.round(n * 100);
 };
 
 /**
