@@ -311,3 +311,15 @@ def test_obbba_leap_day_tier_is_met_on_its_own_leap_anniversary():
     assert out["holding_period"]["met"] is True
     tiers = {t["years"]: t["met"] for t in out["holding_period"]["tiers"]}
     assert tiers == {3: True, 4: True, 5: False}
+
+
+def test_acquisition_whose_anniversary_passes_year_9999_is_an_input_error():
+    # The five-year anniversary of 9998 stock is year 10003, which `date`
+    # cannot hold; this was an uncaught ValueError (a 500), not a 422.
+    with pytest.raises(EngineInputError, match="anniversary falls after 9999"):
+        qsbs_eligibility(**_base(acquisition_date="9998-01-01", assessment_date="9999-01-01"))
+
+
+def test_latest_acquisition_with_a_representable_anniversary_still_evaluates():
+    out = qsbs_eligibility(**_base(acquisition_date="9994-12-31", assessment_date="9999-12-31"))
+    assert out["holding_period"]["five_year_date"] == "9999-12-31"

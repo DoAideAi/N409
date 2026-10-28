@@ -161,9 +161,18 @@ def _anniversary(acquired: date, years: int) -> date:
     a leap-day acquisition landed on a leap year, so the wrong ones were the
     ones a holder is most likely to be asked about.
     """
-    if acquired.month == 2 and acquired.day == 29 and not _is_leap(acquired.year + years):
-        return date(acquired.year + years, 3, 1)
-    return date(acquired.year + years, acquired.month, acquired.day)
+    target = acquired.year + years
+    # `date` stops at 9999, and `_date` accepts any ISO day up to it: stock
+    # "acquired" in 9995 has a five-year anniversary the type cannot hold, and
+    # the ValueError escaped the route as a 500. It is an input the rules
+    # cannot be evaluated against, which is what EngineInputError is for.
+    if target > date.max.year:
+        raise EngineInputError(
+            f"qsbs.acquisition_date is too late: its {years}-year anniversary falls after {date.max.year}"
+        )
+    if acquired.month == 2 and acquired.day == 29 and not _is_leap(target):
+        return date(target, 3, 1)
+    return date(target, acquired.month, acquired.day)
 
 
 def is_obbba_stock(acquisition_date: date) -> bool:
