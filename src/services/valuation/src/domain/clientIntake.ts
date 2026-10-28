@@ -1,5 +1,5 @@
 import { isIsoCalendarDate } from '@n409/shared';
-import { computeCompletion, narrowIntakeAnswers, type IntakeCompletion } from './intake.js';
+import { asNumber, computeCompletion, narrowIntakeAnswers, type IntakeCompletion } from './intake.js';
 import { sliceChars } from './textSlice.js';
 
 /**
@@ -111,10 +111,17 @@ export function intakeCompanyName(answers: Record<string, unknown>, clientName: 
   return addressed ? sliceChars(addressed, 300) : 'Unnamed company';
 }
 
-/** A money answer as integer cents, or null when it cannot be one. */
+/**
+ * A money answer as integer cents, or null when it cannot be one.
+ *
+ * Read the way validation reads it. This used `Number(value)` on its own, and
+ * `Number('')` is 0: an optional revenue field the client left blank — which
+ * validation and completion both treat as unanswered — converted into a stated
+ * $0 of revenue on the new engagement.
+ */
 function cents(value: unknown): number | null {
-  const n = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN;
-  if (!Number.isFinite(n) || n < 0) return null;
+  const n = asNumber(value);
+  if (n === null || n < 0) return null;
   const c = Math.round(n * 100);
   // `last_year_revenue_cents` is a bigint column but the params route caps it
   // at MAX_SAFE_INTEGER, because anything above that has already stopped being

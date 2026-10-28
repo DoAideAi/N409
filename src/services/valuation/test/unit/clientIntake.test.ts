@@ -205,6 +205,15 @@ describe('intakeParamsPatch', () => {
     expect(intakeParamsPatch({ business_description: '   ', last_fy_revenue: null })).toEqual({});
   });
 
+  it('leaves a blank or unreadable revenue answer out rather than seeding $0 (C102 M6)', () => {
+    expect(intakeParamsPatch({ last_fy_revenue: '', ytd_revenue: '   ' })).toEqual({});
+    expect(intakeParamsPatch({ last_fy_revenue: '0x10' })).toEqual({});
+    expect(intakeParamsPatch({ last_fy_revenue: '1250.5', ytd_revenue: '0' })).toEqual({
+      last_year_revenue_cents: 125050,
+      ytd_revenue_cents: 0,
+    });
+  });
+
   it('refuses a revenue stage that is not one of the two', () => {
     expect(intakeParamsPatch({ revenue_status: 'maybe' })).toEqual({});
     expect(intakeParamsPatch({ revenue_status: 7 })).toEqual({});

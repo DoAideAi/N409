@@ -522,11 +522,22 @@ export const isValidIsoDate = isIsoCalendarDate;
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-/** Answers arrive as JSON, so a number can be a number or the string of one. */
-function asNumber(value: unknown): number | null {
+/** A signed decimal, optionally with an exponent — the ways a person types a figure. */
+const DECIMAL_ANSWER = /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
+
+/**
+ * Answers arrive as JSON, so a number can be a number or the string of one.
+ *
+ * The string has to be a decimal before `Number` reads it (C102 M6). `Number`
+ * also reads `0x10` as 16, `0b11` as 3 and `0o17` as 15, so a revenue answer of
+ * `0x10` passed validation as sixteen dollars and conversion seeded the new
+ * engagement's params with it. The conversion path shares this reading rather
+ * than keeping its own, which is how it came to read a blank `""` as $0.
+ */
+export function asNumber(value: unknown): number | null {
   if (typeof value === 'number') return Number.isFinite(value) ? value : null;
-  if (typeof value === 'string' && value.trim() !== '') {
-    const n = Number(value);
+  if (typeof value === 'string' && DECIMAL_ANSWER.test(value.trim())) {
+    const n = Number(value.trim());
     return Number.isFinite(n) ? n : null;
   }
   return null;

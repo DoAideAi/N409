@@ -123,6 +123,14 @@ describe('validateIntake — numbers', () => {
     expect(validate({ last_fy_revenue: '250000' })).toEqual([]);
   });
 
+  it('reads a numeric string as a decimal, not as a radix literal (C102 M6)', () => {
+    for (const typed of ['0x10', '0b11', '0o17']) {
+      expect(messagesFor({ cash_on_hand: typed }, 'cash_on_hand')).toEqual(['Cash on hand must be a number.']);
+    }
+    expect(validate({ last_fy_revenue: ' 2.5e5 ' })).toEqual([]);
+    expect(messagesFor({ cash_on_hand: '-5' }, 'cash_on_hand')).toEqual(['Cash on hand cannot be negative.']);
+  });
+
   it('accepts a legitimate zero-revenue company', () => {
     expect(validate({ last_fy_revenue: 0, ytd_revenue: 0 })).toEqual([]);
   });
