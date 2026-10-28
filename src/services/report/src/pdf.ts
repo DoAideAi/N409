@@ -1496,11 +1496,23 @@ export const TABLE_CONTINUED = 'Table continued';
 /** Default formatting when a point carries no `display`. */
 export function formatChartValue(value: number): string {
   const abs = Math.abs(value);
-  if (abs >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(2)}bn`;
-  if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}m`;
-  if (abs >= 10_000) return `${Math.round(value / 1000)}k`;
-  if (abs >= 1) return value.toFixed(2);
-  return value.toFixed(4);
+  // The magnitude is formatted and the sign put back afterwards, for two
+  // reasons. `Math.round` rounds a half toward +∞, so -24_500 read "-24k" beside
+  // 24_500's "25k"; and a value that rounds to nothing must not keep its sign
+  // ("-0.0000").
+  //
+  // The unit is chosen on the figure as it will be *printed*, not on the raw
+  // magnitude: a value just under a threshold rounds up to 1000 of the smaller
+  // unit, so 999_999_999 read "1000.00m" beside 1_000_000_000's "1.00bn".
+  // 999_995_000 is where the millions figure starts to round to 1000.00, and
+  // 999_500 is where the thousands figure starts to round to 1000.
+  let body: string;
+  if (abs >= 999_995_000) body = `${(abs / 1_000_000_000).toFixed(2)}bn`;
+  else if (abs >= 999_500) body = `${(abs / 1_000_000).toFixed(2)}m`;
+  else if (abs >= 10_000) body = `${Math.round(abs / 1000)}k`;
+  else if (abs >= 1) body = abs.toFixed(2);
+  else body = abs.toFixed(4);
+  return value < 0 && Number(body.replace(/[kmbn]+$/, '')) !== 0 ? `-${body}` : body;
 }
 
 /**
