@@ -289,7 +289,7 @@ describe.skipIf(!dbUp)('sensitivity routes', () => {
       expect(res.statusCode).toBe(422);
       // The lever is named, and so is the set it had to come from — the two
       // facts a caller needs to fix the call without reading the docs.
-      expect(res.json().detail).toMatch(/^Invalid options — parameters\[0\]: /);
+      expect(res.json().detail).toMatch(/^Invalid sensitivity options — parameters\[0\]: /);
       expect(res.json().detail).toContain('discount_rate');
     });
 
