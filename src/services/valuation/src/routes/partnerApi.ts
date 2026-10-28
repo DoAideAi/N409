@@ -212,6 +212,21 @@ const DeliveriesQuery = z.object({
   cursor: cursorParam(),
 });
 
+/**
+ * Standard base64 that decodes to exactly what was encoded. The alphabet test
+ * stays a flat character class — a grouped pattern recurses per group and
+ * overflows the stack on a body near the 25 MB cap — and the shape is checked
+ * by arithmetic: unpadded, any length but ≡ 1 mod 4 (no byte ends there);
+ * padded, whole groups of four only.
+ */
+function isWholeBase64(body: string): boolean {
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(body)) return false;
+  // Padding and nothing else decodes to no bytes, which the zero-byte refusal
+  // explains better than a malformed-encoding one would.
+  if (/^=*$/.test(body)) return true;
+  return body.endsWith('=') ? body.length % 4 === 0 : body.length % 4 !== 1;
+}
+
 const UploadBody = z
   .object({
     filename: z.string().min(1).max(300),
@@ -1103,8 +1118,12 @@ export function registerPartnerApiRoutes(
        * knowing whether splitting it in two is enough.
        */
       const named = safeFilename(parsed.data.filename);
-      // Validate base64 encoding — Buffer.from silently skips invalid chars
-      if (!/^[A-Za-z0-9+/]*={0,2}$/.test(parsed.data.content_base64)) {
+      // Validate base64 encoding — Buffer.from silently skips invalid chars,
+      // and silently drops a trailing group it cannot complete. The alphabet
+      // alone let the second through: a body cut short in transit (length
+      // ≡ 1 mod 4) or padded in the wrong place decoded to a file a byte or
+      // two short, which then sniffed fine and was stored as the document.
+      if (!isWholeBase64(parsed.data.content_base64)) {
         throw problems.unprocessable(
           `The body sent for “${named}” is not valid base64, so nothing was stored. ` +
             'Encode the file with standard base64 (A–Z, a–z, 0–9, + and /, padded with =); ' +

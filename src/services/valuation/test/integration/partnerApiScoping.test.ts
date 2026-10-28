@@ -359,6 +359,26 @@ describe.skipIf(!dbUp)('partner API scoping and paging', () => {
     expect(res.json().filename).toBe('notes.pdf');
   });
 
+  it('rejects a body cut short in transit rather than storing a file missing its tail', async () => {
+    // Every character is in the alphabet, so the alphabet check passed it, and
+    // Buffer.from dropped the incomplete last group: the stored PDF was short
+    // and still sniffed as a PDF.
+    const whole = Buffer.from('%PDF-1.4\n%âãÏÓ\n1 0 obj << >> endobj\n%%EOF\n'.padEnd(48, ' ')).toString(
+      'base64',
+    );
+    expect(whole.length % 4).toBe(0);
+    for (const content_base64 of [whole.slice(0, -3), `${whole.slice(0, -2)}=`]) {
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/partner/v1/valuations/${ownValuationId}/documents`,
+        headers: keyHeader(apiKey),
+        payload: { filename: 'cut.pdf', content_base64 },
+      });
+      expect(res.statusCode).toBe(422);
+      expect(res.json().detail).toContain('base64');
+    }
+  });
+
   it('names the file, its size and the cap when the upload is over the limit', async () => {
     // The one thing the session route's twin cannot say. `bufferUpload` is fed
     // a stream busboy cut at the limit, so the size that was refused is
