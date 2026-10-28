@@ -285,9 +285,27 @@ export function moneyFormatter(
   return format;
 }
 
+/**
+ * `format`, with a negative amount that prints as zero printed as zero.
+ *
+ * `Intl` keeps the sign of `-0` and of any negative that rounds away, so a
+ * `-0.4` cent delta read "-$0.00" and a `-0.00001` per-share figure read
+ * "-$0.0000" — a credit of nothing, on the same figure the server now prints
+ * unsigned (`billing.formatMoneyCents`, `reportSummary.withoutNegativeZero`).
+ * The server says it with `signDisplay: 'negative'`; this build's `lib` is
+ * ES2022, which predates that value, so the zero is compared instead — in the
+ * formatter's own locale and digits, which is what "prints as zero" means.
+ */
+function withoutNegativeZero(format: (value: number) => string): (value: number) => string {
+  const zero = format(0);
+  return (value) => ((value < 0 || Object.is(value, -0)) && format(-value) === zero ? zero : format(value));
+}
+
 function buildMoneyFormatter(code: string, options: Intl.NumberFormatOptions): (value: number) => string {
   try {
-    return new Intl.NumberFormat(undefined, { style: 'currency', currency: code, ...options }).format;
+    return withoutNegativeZero(
+      new Intl.NumberFormat(undefined, { style: 'currency', currency: code, ...options }).format,
+    );
   } catch {
     // Only default the fraction digits when the caller pinned neither: merging
     // a default `minimumFractionDigits: 2` under a caller's
@@ -299,7 +317,8 @@ function buildMoneyFormatter(code: string, options: Intl.NumberFormatOptions): (
       undefined,
       digitsGiven ? options : { minimumFractionDigits: 2, maximumFractionDigits: 2 },
     );
-    return (value: number) => `${code} ${plain.format(value)}`;
+    const format = withoutNegativeZero(plain.format);
+    return (value: number) => `${code} ${format(value)}`;
   }
 }
 
@@ -420,12 +439,12 @@ export function formatAmount(
 }
 
 /** Built once — see {@link formatterCache} for why that is worth saying. */
-const plainNumberFormat = new Intl.NumberFormat();
+const plainNumberFormat = withoutNegativeZero(new Intl.NumberFormat().format);
 
 export function formatNumber(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === '') return '—';
   const n = Number(value);
-  return Number.isFinite(n) ? plainNumberFormat.format(n) : '—';
+  return Number.isFinite(n) ? plainNumberFormat(n) : '—';
 }
 
 /**
@@ -533,6 +552,11 @@ export function formatPerShare(
   })(n);
 }
 
+/** A fixed-point figure with no sign when every digit of it is zero: "-0.0" is "0.0". */
+function unsignedZero(fixed: string): string {
+  return /^-0(\.0+)?$/.test(fixed) ? fixed.slice(1) : fixed;
+}
+
 /**
  * A concluded rate, at the precision it was concluded at.
  *
@@ -559,7 +583,7 @@ export function formatExactPercent(
   const pct = n * 100;
   for (let d = minDigits; d < maxDigits; d += 1) {
     // Exact at this many places — no rounding the reader cannot undo.
-    if (Math.abs(Number(pct.toFixed(d)) - pct) < 1e-9) return `${pct.toFixed(d)}%`;
+    if (Math.abs(Number(pct.toFixed(d)) - pct) < 1e-9) return `${unsignedZero(pct.toFixed(d))}%`;
   }
-  return `${pct.toFixed(maxDigits)}%`;
+  return `${unsignedZero(pct.toFixed(maxDigits))}%`;
 }
