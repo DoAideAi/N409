@@ -630,7 +630,15 @@ def _xlsx_cell_value(cell: ElementTree.Element, shared: list[str]) -> str:
 
 
 def _col_index(ref: str | None) -> int | None:
-    """'BC12' → 0-based column 54; None when the ref is missing or unparseable."""
+    """'BC12' → 0-based column 54; None when the ref is missing or unparseable.
+
+    Stops reading letters once the column is past any `_row_values` keeps.
+    The ref is attacker-controlled text, and accumulating it in full is a
+    Python int that grows by a digit per letter: each step multiplies the whole
+    thing, so a 200,000-letter ref took seven seconds, and the inflated budget
+    allows megabytes of them. Past `MAX_XLSX_COLS` the exact column no longer
+    matters — the cell is dropped either way — so the walk ends there.
+    """
     if not ref:
         return None
     idx = 0
@@ -638,6 +646,8 @@ def _col_index(ref: str | None) -> int | None:
         if not ch.isalpha():
             break
         idx = idx * 26 + (ord(ch.upper()) - 64)
+        if idx > MAX_XLSX_COLS:
+            break
     return idx - 1 if idx else None
 
 
