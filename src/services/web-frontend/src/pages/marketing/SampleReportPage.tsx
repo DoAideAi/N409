@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { Seo } from '../../components/Seo';
@@ -53,6 +53,21 @@ export function SampleReportPage() {
      only came to read the chapter list — the preview costs nothing until the
      button that asks for it is pressed. */
   const [previewOpen, setPreviewOpen] = useState(false);
+  /* The toggle unmounts the moment it is pressed, so focus would fall back to
+     <body> and a keyboard or screen-reader user would have to walk the page
+     from the top to reach what they just opened. Focus follows the change:
+     into the preview when it opens, back to the toggle when it closes. */
+  const previewRef = useRef<HTMLIFrameElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const previewTouched = useRef(false);
+  useEffect(() => {
+    if (!previewTouched.current) return;
+    (previewOpen ? previewRef.current : toggleRef.current)?.focus();
+  }, [previewOpen]);
+  const showPreview = (open: boolean) => {
+    previewTouched.current = true;
+    setPreviewOpen(open);
+  };
 
   useEffect(() => {
     api<SampleResponse>('/sample-report')
@@ -123,7 +138,18 @@ export function SampleReportPage() {
           <div className="hidden sm:block">
             {previewOpen ? (
               <div className="overflow-hidden rounded-lg border border-paper-300 shadow-card">
+                <div className="flex justify-end border-b border-paper-300 bg-paper-50 px-3 py-1.5">
+                  <button
+                    type="button"
+                    data-testid="sample-report-preview-close"
+                    onClick={() => showPreview(false)}
+                    className="cursor-pointer text-xs font-semibold text-bond-600 hover:text-bond-700"
+                  >
+                    Hide preview
+                  </button>
+                </div>
                 <iframe
+                  ref={previewRef}
                   src={PDF_URL}
                   title="Sample 409A valuation report preview"
                   data-testid="sample-report-preview"
@@ -133,8 +159,9 @@ export function SampleReportPage() {
             ) : (
               <button
                 type="button"
+                ref={toggleRef}
                 data-testid="sample-report-preview-toggle"
-                onClick={() => setPreviewOpen(true)}
+                onClick={() => showPreview(true)}
                 className="flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-paper-300 bg-paper-50 px-6 py-10 text-center transition-colors hover:border-bond-400 hover:bg-bond-50"
               >
                 <svg

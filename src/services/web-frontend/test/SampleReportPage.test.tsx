@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { HelmetProvider } from 'react-helmet-async';
 import { MemoryRouter } from 'react-router-dom';
 import { SampleReportPage } from '../src/pages/marketing/SampleReportPage';
@@ -112,6 +112,21 @@ describe('SampleReportPage', () => {
     // to the cent-fraction, and this row used to quote it to the cent.
     expect(strip.textContent).toMatch(/\$4\.0958/);
     expect(strip.textContent).toMatch(/Weighted across three approaches/);
+  });
+
+  it('moves focus into the preview it opens, and back to the toggle when it is hidden', async () => {
+    renderPage();
+    const toggle = await screen.findByTestId('sample-report-preview-toggle');
+    expect(document.activeElement).not.toBe(toggle);
+
+    fireEvent.click(toggle);
+    const preview = await screen.findByTestId('sample-report-preview');
+    await waitFor(() => expect(document.activeElement).toBe(preview));
+
+    fireEvent.click(screen.getByTestId('sample-report-preview-close'));
+    const again = await screen.findByTestId('sample-report-preview-toggle');
+    await waitFor(() => expect(document.activeElement).toBe(again));
+    expect(screen.queryByTestId('sample-report-preview')).toBeNull();
   });
 
   it('hides the download for a kind that publishes no sample PDF', async () => {
