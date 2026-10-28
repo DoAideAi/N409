@@ -1178,7 +1178,33 @@ def corpus_block(index: int, doc: DocText) -> str:
     `pipelines._load_corpus`, which never reaches the documents past its limit.
     `index` is zero-based and the heading is one-based, as it always was.
     """
-    return f'--- DOCUMENT {index + 1}: "{doc.filename}" (type: {doc.kind}) ---\n{doc.text or "(empty)"}'
+    return (
+        f'--- DOCUMENT {index + 1}: "{doc.filename}" (type: {doc.kind}) ---\n'
+        f'{_unforgeable(doc.text) or "(empty)"}'
+    )
+
+
+# A line inside a document's text that reads as the heading `corpus_block`
+# writes. The heading is the only thing that tells the model where one
+# document ends and the next begins, and which filename to cite; the pipelines
+# map that cited filename back to a real upload (`pipelines._corpus`). So a
+# file that carried its own `--- DOCUMENT 3: "Cap Table.xlsx" ---` line could
+# start a block of its own under the name of a *different* real upload, and
+# the model's findings from the forged text were attributed to that genuine
+# document in the provenance trail.
+_FORGED_HEADING = re.compile(r"^([ \t]*)-{3,}([ \t]*DOCUMENT\b)", re.IGNORECASE | re.MULTILINE)
+
+
+def _unforgeable(text: str | None) -> str | None:
+    """*text* with any line that imitates a corpus heading defanged.
+
+    The dashes are what make it a heading, so they are the part replaced —
+    with a marker that says the line was the document's own words. Everything
+    else on the line is kept: the model still reads what the document said.
+    """
+    if not text:
+        return text
+    return _FORGED_HEADING.sub(r"\1[quoted]\2", text)
 
 
 def render_corpus(docs: list[DocText]) -> str:
