@@ -270,10 +270,17 @@ describe('the three bugs this was written for', () => {
    * the fix is later expressed some other way. Each is the pairing that was
    * actually on the element, scored in the theme where it failed.
    */
-  it('keeps the sidebar avatar legible in dark mode', () => {
-    expect(contrast(tone(DARK, 'bond-fg'), tone(DARK, 'bond-500'))).toBeGreaterThanOrEqual(4.5);
-    const avatar = PAIRS.find((p) => p.where.startsWith('components/AppLayout.tsx') && p.bg === 'bond-500');
-    expect(avatar?.fg).toBe('bond-fg');
+  it('keeps the sidebar avatar legible in both themes', () => {
+    // Read off the avatar's own pair rather than pinned to a step: it moved from
+    // bond-500 (2.49:1 under white in light mode after the teal rebrand) to
+    // bond-600, and the guard is that whatever it sits on holds in both themes.
+    const avatar = PAIRS.find(
+      (p) => p.where.startsWith('components/AppLayout.tsx') && p.fg === 'bond-fg' && p.bg.startsWith('bond-'),
+    );
+    expect(avatar).toBeDefined();
+    for (const tokens of [LIGHT, DARK]) {
+      expect(contrast(tone(tokens, avatar!.fg), tone(tokens, avatar!.bg))).toBeGreaterThanOrEqual(4.5);
+    }
   });
 
   it('keeps the progress stepper pips legible in light mode', () => {

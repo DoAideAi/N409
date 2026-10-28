@@ -46,10 +46,14 @@
   --color-bond-300: #5eead4;
   --color-bond-400: #2dd4bf;
   --color-bond-500: #14b8a6;
-  --color-bond-600: #0d9488;
-  --color-bond-700: #0f766e;
-  --color-bond-800: #115e59;
-  --color-bond-900: #134e4a;
+  /* One Tailwind step darker than stock from 600 up. 600 is the filled-button
+     ground under white `bond-fg` across the product, and stock teal-600
+     (#0d9488) reaches only 3.74:1 against white — every primary button failed
+     AA after the teal rebrand. #0f766e is 5.47:1 and still reads as the brand. */
+  --color-bond-600: #0f766e;
+  --color-bond-700: #115e59;
+  --color-bond-800: #134e4a;
+  --color-bond-900: #042f2e;
 
   --color-bond-fg: #ffffff;
 
