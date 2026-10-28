@@ -55,6 +55,15 @@ describe('blogSlugFrom', () => {
   });
 });
 
+describe('blogSlugFrom length', () => {
+  it('stops at the longest slug the blog API would look up', () => {
+    const longest = 'a'.repeat(100);
+    expect(blogSlugFrom(`/blog/${longest}`)).toBe(longest);
+    expect(blogSlugFrom(`/blog/${longest}b`)).toBeUndefined();
+    expect(blogSlugFrom(`/blog/${'ab-'.repeat(2000)}x`)).toBeUndefined();
+  });
+});
+
 describe('renderBlogHead', () => {
   const head = renderBlogHead(POST, ORIGIN);
 

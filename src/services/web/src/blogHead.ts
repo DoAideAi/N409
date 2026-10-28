@@ -42,10 +42,20 @@ export interface BlogPostHead {
   published_at?: string | null;
 }
 
+/**
+ * The longest slug the blog API will look up — `SLUG_MAX` in the valuation
+ * service's routes/blog.ts. A longer one can name no post, so it is not worth
+ * an upstream call or a cache entry: without the cap, a few hundred made-up
+ * kebab paths each cost a lookup and filled the cache, evicting every real
+ * post's head so their next requests all went upstream again.
+ */
+const BLOG_SLUG_MAX = 100;
+
 /** `/blog/<slug>` → slug, for kebab-case slugs only; anything else is not a post. */
 export function blogSlugFrom(url: string): string | undefined {
   const pathname = url.split(/[?#]/, 1)[0]!.replace(/\/+$/, '');
-  return /^\/blog\/([a-z0-9]+(?:-[a-z0-9]+)*)$/.exec(pathname)?.[1];
+  const slug = /^\/blog\/([a-z0-9]+(?:-[a-z0-9]+)*)$/.exec(pathname)?.[1];
+  return slug !== undefined && slug.length <= BLOG_SLUG_MAX ? slug : undefined;
 }
 
 const HTML_ESCAPES: Record<string, string> = {
