@@ -62,6 +62,17 @@ DLOM_METHODS: frozenset[str] = MODEL_DLOM_METHODS | STUDY_DLOM_METHODS | {"quali
 DLOM_VOLATILITY_BASES: tuple[str, ...] = ("class", "enterprise")
 
 
+def is_model_dlom_method(method: object) -> bool:
+    """Whether ``method`` names an option-model DLOM.
+
+    A bare ``method in MODEL_DLOM_METHODS`` hashes its operand, so a request that
+    sent ``"dlom_method": []`` or ``{}`` raised ``TypeError: unhashable type`` out
+    of the pre-flight and answered 500. A value that is not a string is simply not
+    a model name; what to say about an unrecognised method is the caller's call.
+    """
+    return isinstance(method, str) and method in MODEL_DLOM_METHODS
+
+
 def selects_model_dlom(params: dict) -> bool:
     """Whether these params ask for a discount that needs a volatility.
 
@@ -73,7 +84,7 @@ def selects_model_dlom(params: dict) -> bool:
     concluded on a discount with that leg silently contributing nothing. Asking
     the question in one place is what makes that unrepresentable.
     """
-    if params.get("dlom_method") in MODEL_DLOM_METHODS:
+    if is_model_dlom_method(params.get("dlom_method")):
         return True
     blend = params.get("dlom_methods")
     if not isinstance(blend, list):
@@ -81,7 +92,7 @@ def selects_model_dlom(params: dict) -> bool:
     # A malformed row is not this predicate's business — `_blended_dlom` rejects
     # it with a message about the row. Here it simply does not select a model.
     return any(
-        isinstance(entry, dict) and entry.get("method") in MODEL_DLOM_METHODS for entry in blend
+        isinstance(entry, dict) and is_model_dlom_method(entry.get("method")) for entry in blend
     )
 
 #: The discount a DLOM model is allowed to return. A model that wants 100% is

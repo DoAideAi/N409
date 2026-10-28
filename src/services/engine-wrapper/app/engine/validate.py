@@ -47,10 +47,10 @@ from .dloc import (
 from .dlom import (
     DLOM_METHODS,
     DLOM_VOLATILITY_BASES,
-    MODEL_DLOM_METHODS,
     PRE_IPO_RECENCY_YEAR,
     PRE_IPO_STUDIES,
     RESTRICTED_STOCK_STUDIES,
+    is_model_dlom_method,
     is_post_amendment,
     selects_model_dlom,
 )
@@ -964,6 +964,16 @@ def _check_discounts(c: _Collector, params: dict, weights: dict[str, float] | No
 
     method = params.get("dlom_method")
     blend = params.get("dlom_methods")
+    if blend is None and method is not None and not (isinstance(method, str) and method in DLOM_METHODS):
+        # Named, and not a method. Left alone it concluded on a 0% discount.
+        shown = quote_for_message(method) if isinstance(method, str) else type(method).__name__
+        c.error(
+            "invalid_choice",
+            "params.dlom_method",
+            f"dlom_method must be one of {sorted(DLOM_METHODS)} (got '{shown}')",
+            "Omit it to supply dlom directly.",
+        )
+        return
     if blend is not None:
         # A weighted blend is checked as a set of weights here; each leg's own
         # inputs are checked by the branch that leg selects, and the concluded
@@ -996,7 +1006,7 @@ def _check_discounts(c: _Collector, params: dict, weights: dict[str, float] | No
                 source_field,
                 f"{source_field.split('.')[-1]} must be a finite number",
             )
-    elif method in MODEL_DLOM_METHODS:
+    elif is_model_dlom_method(method):
         dlom = None  # derived from volatility and time to exit at compute time
     elif method == "restricted_stock":
         # Blended from the study set at compute time. What can be checked here

@@ -27,6 +27,7 @@ from .approaches import (
 from .bs import bs_call
 from .current_value import allocate_cvm
 from .dloc import resolve_dloc
+from .display_text import quote_for_message
 from .dlom import (
     DLOM_METHODS,
     DLOM_VOLATILITY_BASES,
@@ -712,6 +713,18 @@ def _single_dlom(
             "basis": "analyst judgement — no model or study was applied",
         }
     else:
+        if method is not None:
+            # A method that was named and is not one of ours. Falling through to
+            # `dlom or 0.0` concluded on a 0% marketability discount — a
+            # `dlom_method` of "finerty", or "FINNERTY", priced common 27% high
+            # with a 200 and nothing to say so. `dlom_methods` has always refused
+            # an unknown leg; the single-method spelling must refuse it too. Only
+            # *absent* means "use the `dlom` I supplied".
+            shown = quote_for_message(method) if isinstance(method, str) else type(method).__name__
+            raise EngineInputError(
+                f"dlom_method must be one of {sorted(DLOM_METHODS)} (got '{shown}') — omit it "
+                "to supply dlom directly"
+            )
         dlom = _num(params.get("dlom"), "dlom") or 0.0
     return dlom, method, detail
 
