@@ -19,6 +19,7 @@ import {
   DELIVERIES_PAGE_MAX,
   findDeliveryForPartner,
   findWebhook,
+  isDeliveryInFlight,
   listDeliveries,
   listWebhooks,
   releaseIdempotencyClaim,
@@ -82,6 +83,10 @@ import {
 } from '../domain/partnerApiContract.js';
 import { invalidBody, invalidQuery } from '../domain/validationProblem.js';
 import { forbidden } from '../domain/accessProblem.js';
+
+/** Why a replay was refused while the delivery it names is being sent. */
+const DELIVERY_IN_FLIGHT_DETAIL =
+  'This delivery is being sent right now. Wait for the attempt to settle, then replay it if it failed.';
 
 /**
  * Partner API (improvement 6): a stable, versioned surface for programmatic
@@ -1477,12 +1482,16 @@ export function registerPartnerApiRoutes(
       if (!existing || existing.webhook_id !== webhook.id || existing.status === 'delivered') {
         throw problems.notFound('No replayable delivery with that id');
       }
+      if (isDeliveryInFlight(existing)) throw problems.conflict(DELIVERY_IN_FLIGHT_DETAIL);
       return withIdempotency(req, reply, token, async () => {
         const delivery = await requeueDelivery(deps.pool, token.partnerId, deliveryId);
         if (!delivery || delivery.webhook_id !== webhook.id) {
-          // Only reachable if the row was delivered or removed between the
-          // check above and here, which is the one case where holding the key
-          // is right: we cannot say whether the replay took.
+          // Only reachable if the row was delivered, removed or claimed by a
+          // sweeper between the check above and here, which is the one case
+          // where holding the key is right: we cannot say whether the replay
+          // took.
+          const now = await findDeliveryForPartner(deps.pool, token.partnerId, deliveryId);
+          if (now && isDeliveryInFlight(now)) throw problems.conflict(DELIVERY_IN_FLIGHT_DETAIL);
           throw problems.notFound('No replayable delivery with that id');
         }
         return {

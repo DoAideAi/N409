@@ -8,6 +8,7 @@ import {
   WEBHOOK_RETRY_BACKOFF_MINUTES,
 } from '../../src/domain/partnerWebhooks.js';
 import { retryDueDeliveries } from '../../src/hooks/partnerWebhooks.js';
+import { claimRetryableDeliveries } from '../../src/repos/partnerWebhooks.js';
 import {
   authHeader,
   forceState,
@@ -350,6 +351,53 @@ describe.skipIf(!dbUp)('partner webhooks & idempotency', () => {
       headers: keyHeader(otherApiKey),
     });
     expect(foreign.statusCode).toBe(404);
+  });
+
+  it('refuses to replay a delivery a sweeper is sending, and replays one that is only waiting', async () => {
+    // A 500 leaves the delivery pending, waiting on its backoff.
+    receiverStatus = 500;
+    await app.inject({
+      method: 'POST',
+      url: `/api/partner/v1/webhooks/${webhookId}/test`,
+      headers: keyHeader(apiKey),
+    });
+    receiverStatus = 200;
+    const { rows } = await ctx.pool.query<{ id: string }>(
+      `SELECT id FROM partner_webhook_deliveries
+        WHERE webhook_id = $1 AND status = 'pending' ORDER BY created_at DESC LIMIT 1`,
+      [webhookId],
+    );
+    const deliveryId = rows[0]!.id;
+    const retry = () =>
+      app.inject({
+        method: 'POST',
+        url: `/api/partner/v1/webhooks/${webhookId}/deliveries/${deliveryId}/retry`,
+        headers: keyHeader(apiKey),
+      });
+
+    // Waiting, unclaimed: replaying it only skips the backoff.
+    expect((await retry()).statusCode).toBe(200);
+
+    // A sweeper claims it; its POST is now open against the receiver.
+    const claimed = await claimRetryableDeliveries(ctx.pool, { limit: 100 });
+    const mine = claimed.find((d) => d.id === deliveryId);
+    expect(mine).toBeTruthy();
+
+    const refused = await retry();
+    expect(refused.statusCode).toBe(409);
+    expect(refused.json().detail).toMatch(/being sent right now/);
+
+    // The claim and its attempt count are intact, so the sweeper's settle lands
+    // and no second sweep can pick the row up mid-send.
+    const after = await ctx.pool.query<{ claimed_at: Date | null; attempts: number }>(
+      'SELECT claimed_at, attempts FROM partner_webhook_deliveries WHERE id = $1',
+      [deliveryId],
+    );
+    expect(after.rows[0]!.claimed_at).not.toBeNull();
+    expect(after.rows[0]!.attempts).toBe(mine!.attempts);
+    expect(await claimRetryableDeliveries(ctx.pool, { limit: 100 })).not.toContainEqual(
+      expect.objectContaining({ id: deliveryId }),
+    );
   });
 
   it("scopes webhooks to the key's partner", async () => {

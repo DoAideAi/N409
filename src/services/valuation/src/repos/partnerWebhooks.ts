@@ -788,16 +788,40 @@ export async function replayFailedDeliveries(
 }
 
 /**
- * Re-opens a terminal delivery for one more round, used by the partner-facing
- * replay button. Attempts are reset so the full backoff ladder is available
- * again; a receiver that has been fixed deserves the same patience as a new
- * event, and the attempt history stays in the audit log either way.
+ * Whether a sweeper holds this delivery right now: claimed, and inside the
+ * lease the sweep claims with. Settlement clears `claimed_at`, so a pending row
+ * that still carries one under the lease has a POST open against the receiver.
+ */
+export function isDeliveryInFlight(
+  row: Pick<WebhookDeliveryRow, 'status' | 'claimed_at'>,
+  now: Date = new Date(),
+): boolean {
+  if (row.status !== 'pending' || row.claimed_at === null) return false;
+  const leaseMs = Number(claimWindow({}).leaseSeconds) * 1000;
+  return now.getTime() - row.claimed_at.getTime() < leaseMs;
+}
+
+/**
+ * Re-opens a delivery for one more round, used by the partner-facing replay
+ * button. Attempts are reset so the full backoff ladder is available again; a
+ * receiver that has been fixed deserves the same patience as a new event, and
+ * the attempt history stays in the audit log either way.
+ *
+ * Not while an attempt is in flight. A pending row a sweeper has claimed has a
+ * POST open against the receiver, and resetting `claimed_at` and `attempts`
+ * under it made the row claimable again at once: the next sweep sent the same
+ * event a second time while the first was still landing, and the first
+ * sweeper's settle — fenced on the attempt count the reset just zeroed — was
+ * discarded, so the delivery that succeeded was left pending to be sent again.
+ * A waiting row (pending, unclaimed or past its lease) is still replayable;
+ * that only skips its backoff.
  */
 export async function requeueDelivery(
   pool: pg.Pool,
   partnerId: string,
   deliveryId: string,
 ): Promise<WebhookDeliveryRow | null> {
+  const { leaseSeconds } = claimWindow({});
   const { rows } = await pool.query<WebhookDeliveryRow>(
     `UPDATE partner_webhook_deliveries d
         SET status = 'pending', attempts = 0, claimed_at = NULL, next_attempt_at = now(),
@@ -805,8 +829,10 @@ export async function requeueDelivery(
        FROM partner_webhooks w
       WHERE d.id = $1 AND w.id = d.webhook_id AND w.partner_id = $2
         AND d.status <> 'delivered'
+        AND NOT (d.status = 'pending' AND d.claimed_at IS NOT NULL
+                 AND d.claimed_at >= now() - ($3 || ' seconds')::interval)
       RETURNING d.*`,
-    [deliveryId, partnerId],
+    [deliveryId, partnerId, leaseSeconds],
   );
   return rows[0] ?? null;
 }
