@@ -3,6 +3,7 @@ import { createValuation } from '../../src/repos/valuations.js';
 import { retireValuations } from '../../src/repos/valuationPurge.js';
 import { signAccountingState, signCapTableSyncState, signHrisState } from '../../src/auth/jwt.js';
 import { isDbAvailable, seedUser, setupTestApp, type TestApp } from './helpers.js';
+import { boundState } from './oauthBinding.js';
 
 const dbUp = await isDbAvailable();
 
@@ -72,6 +73,7 @@ describe.skipIf(!dbUp)('integration OAuth callbacks — engagement retired durin
     {
       name: 'cap-table sync',
       path: '/api/v1/cap-table-sync/callback',
+      flow: 'cap-table-sync',
       provider: 'carta',
       table: 'cap_table_connections',
       sign: signCapTableSyncState,
@@ -79,6 +81,7 @@ describe.skipIf(!dbUp)('integration OAuth callbacks — engagement retired durin
     {
       name: 'accounting',
       path: '/api/v1/accounting/callback',
+      flow: 'accounting',
       provider: 'quickbooks',
       table: 'accounting_connections',
       sign: signAccountingState,
@@ -86,21 +89,23 @@ describe.skipIf(!dbUp)('integration OAuth callbacks — engagement retired durin
     {
       name: 'HRIS',
       path: '/api/v1/hris/callback',
+      flow: 'hris',
       provider: 'rippling',
       table: 'hris_connections',
       sign: signHrisState,
     },
   ] as const;
 
-  for (const { name, path, provider, table, sign } of CASES) {
+  for (const { name, path, flow, provider, table, sign } of CASES) {
     it(`${name}: redirects with retired and connects nothing`, async () => {
       const v = await retiredValuation();
-      const state = await sign({ valuationId: v.id, provider, userId: user.id }, JWT);
+      const { state, headers } = await boundState(sign, { valuationId: v.id, provider, userId: user.id }, JWT, flow);
       fetchFn.mockClear();
 
       const res = await ctx.app.inject({
         method: 'GET',
         url: `${path}?state=${encodeURIComponent(state)}&code=abc`,
+        headers,
       });
 
       expect(res.statusCode).toBe(302);
@@ -121,7 +126,12 @@ describe.skipIf(!dbUp)('integration OAuth callbacks — engagement retired durin
       { kind: '409a', companyName: 'Live Inc', userId: user.id },
       { actorType: 'human', actorId: user.id, source: 'test' },
     );
-    const state = await signCapTableSyncState({ valuationId: v.id, provider: 'carta', userId: user.id }, JWT);
+    const { state, headers: stateBinding } = await boundState(
+      signCapTableSyncState,
+      { valuationId: v.id, provider: 'carta', userId: user.id },
+      JWT,
+      'cap-table-sync',
+    );
     fetchFn.mockClear();
     fetchFn.mockImplementationOnce(
       async () =>
@@ -134,6 +144,7 @@ describe.skipIf(!dbUp)('integration OAuth callbacks — engagement retired durin
     const res = await ctx.app.inject({
       method: 'GET',
       url: `/api/v1/cap-table-sync/callback?state=${encodeURIComponent(state)}&code=abc`,
+      headers: stateBinding,
     });
 
     expect(res.statusCode).toBe(302);

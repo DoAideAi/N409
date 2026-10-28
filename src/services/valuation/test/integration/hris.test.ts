@@ -12,6 +12,7 @@ import {
   setupTestApp,
   type TestApp,
 } from './helpers.js';
+import { boundState } from './oauthBinding.js';
 
 /** A sweep logger that keeps nothing — these cases assert on the row. */
 const silentLog = { warn: () => {}, error: () => {}, info: () => {} };
@@ -114,13 +115,16 @@ describe.skipIf(!dbUp)('HRIS sync for ASC 718 (feature 11)', () => {
       { kind: '409a', companyName: 'Acme', userId: ops.id },
       { actorType: 'human', actorId: ops.id, source: 'test' },
     );
-    const state = await signHrisState(
+    const { state, headers: stateBinding } = await boundState(
+      signHrisState,
       { valuationId: v.id, provider: 'rippling', userId: ops.id },
       { secret: 'integration-test-secret-0123456789abcdef', issuer: 'n409', ttlSeconds: 3600 },
+      'hris',
     );
     const cb = await ctx.app.inject({
       method: 'GET',
       url: `/api/v1/hris/callback?state=${encodeURIComponent(state)}&code=abc&company_id=co1`,
+      headers: stateBinding,
     });
     expect(cb.statusCode).toBe(302);
     return v;
@@ -135,13 +139,16 @@ describe.skipIf(!dbUp)('HRIS sync for ASC 718 (feature 11)', () => {
       { kind: '409a', companyName: 'Confusable', userId: ops.id },
       { actorType: 'human', actorId: ops.id, source: 'test' },
     );
-    const foreignState = await signCapTableSyncState(
+    const { state: foreignState, headers: foreignStateBinding } = await boundState(
+      signCapTableSyncState,
       { valuationId: v.id, provider: 'rippling', userId: ops.id },
       { secret: 'integration-test-secret-0123456789abcdef', issuer: 'n409', ttlSeconds: 3600 },
+      'cap-table-sync',
     );
     const cb = await ctx.app.inject({
       method: 'GET',
       url: `/api/v1/hris/callback?state=${encodeURIComponent(foreignState)}&code=abc&company_id=co1`,
+      headers: foreignStateBinding,
     });
     expect(cb.statusCode).toBe(422);
   });
@@ -895,13 +902,16 @@ describe.skipIf(!dbUp)('HRIS sync for ASC 718 (feature 11)', () => {
         [v.id],
       );
 
-      const state = await signHrisState(
+      const { state, headers: stateBinding } = await boundState(
+        signHrisState,
         { valuationId: v.id, provider: 'rippling', userId: ops.id },
         { secret: 'integration-test-secret-0123456789abcdef', issuer: 'n409', ttlSeconds: 3600 },
+        'hris',
       );
       await ctx.app.inject({
         method: 'GET',
         url: `/api/v1/hris/callback?state=${encodeURIComponent(state)}&code=abc&company_id=co1`,
+        headers: stateBinding,
       });
 
       const row = await connectionRow(v.id);
@@ -974,13 +984,16 @@ describe.skipIf(!dbUp)('HRIS sync for ASC 718 (feature 11)', () => {
         payload: { frequency: 'weekly' },
       });
 
-      const state = await signHrisState(
+      const { state, headers: stateBinding } = await boundState(
+        signHrisState,
         { valuationId: v.id, provider: 'rippling', userId: ops.id },
         { secret: 'integration-test-secret-0123456789abcdef', issuer: 'n409', ttlSeconds: 3600 },
+        'hris',
       );
       await ctx.app.inject({
         method: 'GET',
         url: `/api/v1/hris/callback?state=${encodeURIComponent(state)}&code=abc&company_id=co1`,
+        headers: stateBinding,
       });
 
       const row = await connectionRow(v.id);

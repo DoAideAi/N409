@@ -3,6 +3,7 @@ import { createValuation } from '../../src/repos/valuations.js';
 import { adminPatchUser, softDeleteUser } from '../../src/repos/adminUsers.js';
 import { signAccountingState, signCapTableSyncState, signHrisState } from '../../src/auth/jwt.js';
 import { isDbAvailable, seedUser, setupTestApp, type TestApp } from './helpers.js';
+import { boundState } from './oauthBinding.js';
 
 const dbUp = await isDbAvailable();
 
@@ -60,6 +61,7 @@ describe.skipIf(!dbUp)('integration OAuth callbacks — the actor’s access end
     {
       name: 'cap-table sync',
       path: '/api/v1/cap-table-sync/callback',
+      flow: 'cap-table-sync',
       provider: 'carta',
       table: 'cap_table_connections',
       sign: signCapTableSyncState,
@@ -67,6 +69,7 @@ describe.skipIf(!dbUp)('integration OAuth callbacks — the actor’s access end
     {
       name: 'accounting',
       path: '/api/v1/accounting/callback',
+      flow: 'accounting',
       provider: 'quickbooks',
       table: 'accounting_connections',
       sign: signAccountingState,
@@ -74,23 +77,25 @@ describe.skipIf(!dbUp)('integration OAuth callbacks — the actor’s access end
     {
       name: 'HRIS',
       path: '/api/v1/hris/callback',
+      flow: 'hris',
       provider: 'rippling',
       table: 'hris_connections',
       sign: signHrisState,
     },
   ] as const;
 
-  for (const { name, path, provider, table, sign } of CASES) {
+  for (const { name, path, flow, provider, table, sign } of CASES) {
     it(`${name}: a closed account connects nothing`, async () => {
       const user = await seedUser(ctx, { roles: ['valuation_user'] });
       const v = await engagementFor(user.id, `Closed ${provider} Inc`);
-      const state = await sign({ valuationId: v.id, provider, userId: user.id }, JWT);
+      const { state, headers } = await boundState(sign, { valuationId: v.id, provider, userId: user.id }, JWT, flow);
       await softDeleteUser(ctx.pool, user.id, { actorType: 'human', actorId: user.id, source: 'test' });
       fetchFn.mockClear();
 
       const res = await ctx.app.inject({
         method: 'GET',
         url: `${path}?state=${encodeURIComponent(state)}&code=abc`,
+        headers,
       });
 
       expect(res.statusCode).toBe(302);
@@ -104,13 +109,19 @@ describe.skipIf(!dbUp)('integration OAuth callbacks — the actor’s access end
   it('a suspension refuses it too — `ignored` subtracts every scope', async () => {
     const user = await seedUser(ctx, { roles: ['valuation_user'] });
     const v = await engagementFor(user.id, 'Suspended Inc');
-    const state = await signCapTableSyncState({ valuationId: v.id, provider: 'carta', userId: user.id }, JWT);
+    const { state, headers: stateBinding } = await boundState(
+      signCapTableSyncState,
+      { valuationId: v.id, provider: 'carta', userId: user.id },
+      JWT,
+      'cap-table-sync',
+    );
     await adminPatchUser(ctx.pool, user.id, { roles: ['valuation_user', 'ignored'] });
     fetchFn.mockClear();
 
     const res = await ctx.app.inject({
       method: 'GET',
       url: `/api/v1/cap-table-sync/callback?state=${encodeURIComponent(state)}&code=abc`,
+      headers: stateBinding,
     });
 
     expect(res.headers.location).toContain('sync=unauthorized');
@@ -123,12 +134,18 @@ describe.skipIf(!dbUp)('integration OAuth callbacks — the actor’s access end
     const user = await seedUser(ctx, { roles: ['valuation_user'] });
     const stranger = await seedUser(ctx, { roles: ['valuation_user'] });
     const v = await engagementFor(stranger.id, 'Someone Else Inc');
-    const state = await signCapTableSyncState({ valuationId: v.id, provider: 'carta', userId: user.id }, JWT);
+    const { state, headers: stateBinding } = await boundState(
+      signCapTableSyncState,
+      { valuationId: v.id, provider: 'carta', userId: user.id },
+      JWT,
+      'cap-table-sync',
+    );
     fetchFn.mockClear();
 
     const res = await ctx.app.inject({
       method: 'GET',
       url: `/api/v1/cap-table-sync/callback?state=${encodeURIComponent(state)}&code=abc`,
+      headers: stateBinding,
     });
 
     expect(res.headers.location).toContain('sync=unauthorized');
@@ -146,7 +163,12 @@ describe.skipIf(!dbUp)('integration OAuth callbacks — the actor’s access end
   it('HRIS: an operator demoted out of ops mid-hop connects nothing', async () => {
     const user = await seedUser(ctx, { roles: ['admin'] });
     const v = await engagementFor(user.id, 'Demoted Payroll Inc');
-    const state = await signHrisState({ valuationId: v.id, provider: 'rippling', userId: user.id }, JWT);
+    const { state, headers: stateBinding } = await boundState(
+      signHrisState,
+      { valuationId: v.id, provider: 'rippling', userId: user.id },
+      JWT,
+      'hris',
+    );
     // Still able to read the engagement — they own it — but no longer ops, so
     // `/connect` would refuse to start this hop now.
     await adminPatchUser(ctx.pool, user.id, { roles: ['valuation_user'] });
@@ -155,6 +177,7 @@ describe.skipIf(!dbUp)('integration OAuth callbacks — the actor’s access end
     const res = await ctx.app.inject({
       method: 'GET',
       url: `/api/v1/hris/callback?state=${encodeURIComponent(state)}&code=abc`,
+      headers: stateBinding,
     });
 
     expect(res.headers.location).toContain('hris=unauthorized');
@@ -168,7 +191,12 @@ describe.skipIf(!dbUp)('integration OAuth callbacks — the actor’s access end
     // own legitimate caller.
     const user = await seedUser(ctx, { roles: ['admin'] });
     const v = await engagementFor(user.id, 'Still Ops Payroll Inc');
-    const state = await signHrisState({ valuationId: v.id, provider: 'rippling', userId: user.id }, JWT);
+    const { state, headers: stateBinding } = await boundState(
+      signHrisState,
+      { valuationId: v.id, provider: 'rippling', userId: user.id },
+      JWT,
+      'hris',
+    );
     fetchFn.mockClear();
     fetchFn.mockImplementationOnce(
       async () =>
@@ -181,6 +209,7 @@ describe.skipIf(!dbUp)('integration OAuth callbacks — the actor’s access end
     const res = await ctx.app.inject({
       method: 'GET',
       url: `/api/v1/hris/callback?state=${encodeURIComponent(state)}&code=abc`,
+      headers: stateBinding,
     });
 
     expect(res.headers.location).toContain('hris=connected');
@@ -189,7 +218,12 @@ describe.skipIf(!dbUp)('integration OAuth callbacks — the actor’s access end
   it('a live actor still connects through the same door', async () => {
     const user = await seedUser(ctx, { roles: ['valuation_user'] });
     const v = await engagementFor(user.id, 'Still Here Inc');
-    const state = await signCapTableSyncState({ valuationId: v.id, provider: 'carta', userId: user.id }, JWT);
+    const { state, headers: stateBinding } = await boundState(
+      signCapTableSyncState,
+      { valuationId: v.id, provider: 'carta', userId: user.id },
+      JWT,
+      'cap-table-sync',
+    );
     fetchFn.mockClear();
     fetchFn.mockImplementationOnce(
       async () =>
@@ -202,6 +236,7 @@ describe.skipIf(!dbUp)('integration OAuth callbacks — the actor’s access end
     const res = await ctx.app.inject({
       method: 'GET',
       url: `/api/v1/cap-table-sync/callback?state=${encodeURIComponent(state)}&code=abc`,
+      headers: stateBinding,
     });
 
     expect(res.headers.location).toContain('sync=connected');

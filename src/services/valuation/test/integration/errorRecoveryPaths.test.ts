@@ -19,6 +19,7 @@ import {
   setupTestApp,
   type TestApp,
 } from './helpers.js';
+import { bindingCookie, boundState } from './oauthBinding.js';
 
 const dbUp = await isDbAvailable();
 
@@ -248,10 +249,16 @@ describe.skipIf(!dbUp)('what an operation leaves behind when it dies halfway', (
     beforeAll(async () => {
       const v = await seedValuation('Halfway HRIS Co');
       valuationId = v.id;
-      const state = await signHrisState({ valuationId: v.id, provider: 'rippling', userId: ops.id }, jwtOpts);
+      const { state, headers: stateBinding } = await boundState(
+        signHrisState,
+        { valuationId: v.id, provider: 'rippling', userId: ops.id },
+        jwtOpts,
+        'hris',
+      );
       const cb = await ctx.app.inject({
         method: 'GET',
         url: `/api/v1/hris/callback?state=${encodeURIComponent(state)}&code=abc&company_id=co1`,
+        headers: stateBinding,
       });
       expect(cb.statusCode).toBe(302);
       const { rows } = await ctx.pool.query<{ id: string }>(
@@ -339,13 +346,16 @@ describe.skipIf(!dbUp)('what an operation leaves behind when it dies halfway', (
     beforeAll(async () => {
       const v = await seedValuation('Halfway Carta Co');
       valuationId = v.id;
-      const state = await signCapTableSyncState(
+      const { state, headers: stateBinding } = await boundState(
+        signCapTableSyncState,
         { valuationId: v.id, provider: 'carta', userId: ops.id },
         jwtOpts,
+        'cap-table-sync',
       );
       const cb = await ctx.app.inject({
         method: 'GET',
         url: `/api/v1/cap-table-sync/callback?state=${encodeURIComponent(state)}&code=abc&company_id=co_1`,
+        headers: stateBinding,
       });
       expect(cb.statusCode).toBe(302);
       const { rows } = await ctx.pool.query<{ id: string }>(
@@ -436,6 +446,7 @@ describe.skipIf(!dbUp)('what an operation leaves behind when it dies halfway', (
       const cb = await ctx.app.inject({
         method: 'GET',
         url: `/api/v1/accounting/callback?state=${encodeURIComponent(state)}&code=auth-code&realmId=tenant-1`,
+        headers: bindingCookie(started, 'accounting'),
       });
       expect(cb.statusCode).toBe(302);
     });

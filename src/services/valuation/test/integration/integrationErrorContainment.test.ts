@@ -3,6 +3,7 @@ import { createValuation } from '../../src/repos/valuations.js';
 import { signCapTableSyncState } from '../../src/auth/jwt.js';
 import { providerRefused } from '../../src/clients/deadline.js';
 import { authHeader, isDbAvailable, seedUser, setupTestApp, type TestApp } from './helpers.js';
+import { boundState } from './oauthBinding.js';
 
 const dbUp = await isDbAvailable();
 
@@ -110,13 +111,16 @@ describe.skipIf(!dbUp)('a cap-table sync failure carries only wording we authore
     );
     valuationId = valuation.id;
 
-    const state = await signCapTableSyncState(
+    const { state, headers: stateBinding } = await boundState(
+      signCapTableSyncState,
       { valuationId, provider: 'carta', userId: ops.id },
       { secret: 'integration-test-secret-0123456789abcdef', issuer: 'n409', ttlSeconds: 3600 },
+      'cap-table-sync',
     );
     const connected = await ctx.app.inject({
       method: 'GET',
       url: `/api/v1/cap-table-sync/callback?state=${encodeURIComponent(state)}&code=abc&company_id=co_1`,
+      headers: stateBinding,
     });
     expect(connected.statusCode).toBe(302);
   });

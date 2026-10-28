@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { findConnection } from '../../src/repos/accountingConnections.js';
 import { applyEngineInputs, findParams } from '../../src/repos/params.js';
 import { authHeader, isDbAvailable, seedUser, setupTestApp, type TestApp } from './helpers.js';
+import { bindingCookie } from './oauthBinding.js';
 
 const dbUp = await isDbAvailable();
 
@@ -156,6 +157,7 @@ describe.skipIf(!dbUp)('accounting routes', () => {
     const callback = await app.inject({
       method: 'GET',
       url: `/api/v1/accounting/callback?${query.toString()}`,
+      headers: bindingCookie(started, 'accounting'),
     });
     expect(callback.statusCode).toBe(302);
     expect(callback.headers.location).toContain('accounting=connected');
@@ -272,6 +274,37 @@ describe.skipIf(!dbUp)('accounting routes', () => {
   });
 
   describe('the OAuth callback', () => {
+    /*
+     * Login CSRF (RFC 6749 §10.12): an attacker starts Connect on their own
+     * engagement and sends the consent URL — signed state and all — to a
+     * client, whose approval would otherwise land the client's books on the
+     * attacker's file. The state is only honoured from the browser that
+     * pressed Connect.
+     */
+    it('refuses a valid state arriving in a browser that did not start the flow (C102 M10)', async () => {
+      const id = await createValuation('Login CSRF Co');
+      const attacker = await app.inject({ method: 'POST', url: connectUrl(id), headers: authHeader(client.token) });
+      const state = new URL(attacker.json().authorize_url).searchParams.get('state')!;
+      const url = `/api/v1/accounting/callback?state=${encodeURIComponent(state)}&code=victim-code`;
+
+      const noCookie = await app.inject({ method: 'GET', url });
+      expect(noCookie.statusCode).toBe(422);
+
+      // A different browser's own nonce — the victim pressed Connect elsewhere — is no better.
+      const victim = await app.inject({ method: 'POST', url: connectUrl(id), headers: authHeader(client.token) });
+      const wrongCookie = await app.inject({ method: 'GET', url, headers: bindingCookie(victim, 'accounting') });
+      expect(wrongCookie.statusCode).toBe(422);
+
+      expect(await findConnection(pool, id, 'xero')).toBeNull();
+    });
+
+    it('sets the binding cookie httpOnly, Lax and scoped to the callback path', async () => {
+      const id = await createValuation('Cookie Shape Co');
+      const res = await app.inject({ method: 'POST', url: connectUrl(id), headers: authHeader(client.token) });
+      const cookie = res.cookies.find((c) => c.name === 'n409_oauth_accounting')!;
+      expect(cookie).toMatchObject({ httpOnly: true, sameSite: 'Lax', path: '/api/v1/accounting/callback' });
+    });
+
     it('rejects a call with no state at all', async () => {
       const res = await app.inject({ method: 'GET', url: '/api/v1/accounting/callback' });
       expect(res.statusCode).toBe(400);
@@ -310,6 +343,7 @@ describe.skipIf(!dbUp)('accounting routes', () => {
       const res = await app.inject({
         method: 'GET',
         url: `/api/v1/accounting/callback?state=${encodeURIComponent(state)}&error=access_denied`,
+        headers: bindingCookie(started, 'accounting'),
       });
       expect(res.statusCode).toBe(302);
       expect(res.headers.location).toBe(
@@ -358,6 +392,7 @@ describe.skipIf(!dbUp)('accounting routes', () => {
         const res = await other.app.inject({
           method: 'GET',
           url: `/api/v1/accounting/callback?state=${encodeURIComponent(state)}&code=abc`,
+          headers: bindingCookie(started, 'accounting'),
         });
         expect(res.statusCode).toBe(302);
         expect(res.headers.location).toContain('accounting=error');
@@ -412,6 +447,7 @@ describe.skipIf(!dbUp)('accounting routes', () => {
         const res = await other.app.inject({
           method: 'GET',
           url: `/api/v1/accounting/callback?state=${encodeURIComponent(state)}&code=abc`,
+          headers: bindingCookie(started, 'accounting'),
         });
         await other.pool.query('ALTER TABLE accounting_connections DROP CONSTRAINT r382_store_fails');
 
@@ -621,6 +657,7 @@ describe.skipIf(!dbUp)('accounting routes', () => {
         await other.app.inject({
           method: 'GET',
           url: `/api/v1/accounting/callback?state=${encodeURIComponent(state)}&code=abc`,
+          headers: bindingCookie(started, 'accounting'),
         });
         await other.pool.query(
           `UPDATE accounting_connections SET token_expires_at = now() - interval '1 hour'
@@ -691,6 +728,7 @@ describe.skipIf(!dbUp)('accounting routes', () => {
         await other.app.inject({
           method: 'GET',
           url: `/api/v1/accounting/callback?state=${encodeURIComponent(state)}&code=abc`,
+          headers: bindingCookie(started, 'accounting'),
         });
 
         const res = await other.app.inject({
@@ -744,6 +782,7 @@ describe.skipIf(!dbUp)('accounting routes', () => {
         await other.app.inject({
           method: 'GET',
           url: `/api/v1/accounting/callback?state=${encodeURIComponent(state)}&code=abc`,
+          headers: bindingCookie(started, 'accounting'),
         });
 
         const res = await other.app.inject({

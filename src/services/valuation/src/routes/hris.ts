@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { ApiProblem, isUlid, problems } from '@n409/shared';
 import { canReadValuation, isOps, type Principal } from '../auth/rbac.js';
 import { signHrisState, verifyHrisState, type JwtConfig } from '../auth/jwt.js';
+import { bindIntegrationFlow, integrationFlowBound } from '../auth/integrationBinding.js';
 import {
   HRIS_PROVIDERS,
   HRIS_PROVIDER_LABELS,
@@ -592,7 +593,7 @@ export function registerHrisRoutes(app: FastifyInstance, deps: HrisDeps): void {
     };
   });
 
-  app.post('/api/v1/valuations/:id/hris/:provider/connect', { preHandler: app.authenticate }, async (req) => {
+  app.post('/api/v1/valuations/:id/hris/:provider/connect', { preHandler: app.authenticate }, async (req, reply) => {
     const principal = requirePrincipal(req);
     requireOps(principal);
     const { id, provider: rawProvider } = req.params as { id: string; provider: string };
@@ -602,7 +603,7 @@ export function registerHrisRoutes(app: FastifyInstance, deps: HrisDeps): void {
     const creds = deps.credentials[provider];
     if (!creds) throw providerUnavailable(provider);
     const state = await signHrisState(
-      { valuationId: valuation.id, provider, userId: principal.id },
+      { valuationId: valuation.id, provider, userId: principal.id, binding: bindIntegrationFlow(reply, 'hris', deps.publicBaseUrl) },
       deps.jwt,
     );
     return { authorize_url: authorizeUrl(provider, creds, redirectUri, state) };
@@ -620,6 +621,13 @@ export function registerHrisRoutes(app: FastifyInstance, deps: HrisDeps): void {
       state = await verifyHrisState(q.state, deps.jwt);
     } catch (err) {
       req.log.warn({ err }, 'hris callback state verification failed');
+      throw problems.unprocessable(integrationCallbackRefusal('hris'));
+    }
+    // The browser arriving here must be the one that pressed Connect — see
+    // auth/integrationBinding.ts. Refused as an unusable state: to this
+    // browser, that is what it is.
+    if (!integrationFlowBound(req, reply, 'hris', state.binding, deps.publicBaseUrl)) {
+      req.log.warn('hris callback arrived without the browser binding its state was minted with');
       throw problems.unprocessable(integrationCallbackRefusal('hris'));
     }
     const provider = parseProvider(state.provider);

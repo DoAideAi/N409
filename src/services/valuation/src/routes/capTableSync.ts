@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { ApiProblem, isUlid, problems } from '@n409/shared';
 import { canReadValuation, type Principal } from '../auth/rbac.js';
 import { signCapTableSyncState, verifyCapTableSyncState, type JwtConfig } from '../auth/jwt.js';
+import { bindIntegrationFlow, integrationFlowBound } from '../auth/integrationBinding.js';
 import {
   CAP_TABLE_PROVIDERS,
   CAP_TABLE_PROVIDER_LABELS,
@@ -612,7 +613,7 @@ export function registerCapTableSyncRoutes(app: FastifyInstance, deps: CapTableS
   app.post(
     '/api/v1/valuations/:id/cap-table/sync/:provider/connect',
     { preHandler: app.authenticate },
-    async (req) => {
+    async (req, reply) => {
       const principal = requirePrincipal(req);
       const { id, provider: rawProvider } = req.params as { id: string; provider: string };
       const provider = parseProvider(rawProvider);
@@ -621,7 +622,7 @@ export function registerCapTableSyncRoutes(app: FastifyInstance, deps: CapTableS
       const creds = deps.credentials[provider];
       if (!creds) throw providerUnavailable(provider);
       const state = await signCapTableSyncState(
-        { valuationId: valuation.id, provider, userId: principal.id },
+        { valuationId: valuation.id, provider, userId: principal.id, binding: bindIntegrationFlow(reply, 'cap-table-sync', deps.publicBaseUrl) },
         deps.jwt,
       );
       return { authorize_url: authorizeUrl(provider, creds, redirectUri, state) };
@@ -640,6 +641,13 @@ export function registerCapTableSyncRoutes(app: FastifyInstance, deps: CapTableS
       state = await verifyCapTableSyncState(q.state, deps.jwt);
     } catch (err) {
       req.log.warn({ err }, 'cap-table sync callback state verification failed');
+      throw problems.unprocessable(integrationCallbackRefusal('capTable'));
+    }
+    // The browser arriving here must be the one that pressed Connect — see
+    // auth/integrationBinding.ts. Refused as an unusable state: to this
+    // browser, that is what it is.
+    if (!integrationFlowBound(req, reply, 'cap-table-sync', state.binding, deps.publicBaseUrl)) {
+      req.log.warn('cap-table-sync callback arrived without the browser binding its state was minted with');
       throw problems.unprocessable(integrationCallbackRefusal('capTable'));
     }
     const provider = parseProvider(state.provider);

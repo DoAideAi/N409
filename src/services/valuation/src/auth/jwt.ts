@@ -126,6 +126,12 @@ export interface IntegrationState {
   valuationId: string;
   provider: string;
   userId: string;
+  /**
+   * SHA-256 of the nonce cookie set on the response that started the flow —
+   * see `auth/integrationBinding.ts`. Optional on the type so a state minted
+   * without one still parses; the callbacks refuse it.
+   */
+  binding?: string;
 }
 
 const INTEGRATION_PURPOSES = {
@@ -141,7 +147,12 @@ async function signIntegrationState(
   s: IntegrationState,
   cfg: JwtConfig,
 ): Promise<string> {
-  return new SignJWT({ purpose: INTEGRATION_PURPOSES[kind], v: s.valuationId, p: s.provider })
+  return new SignJWT({
+    purpose: INTEGRATION_PURPOSES[kind],
+    v: s.valuationId,
+    p: s.provider,
+    ...(s.binding ? { n: s.binding } : {}),
+  })
     .setProtectedHeader({ alg: 'HS256' })
     .setSubject(s.userId)
     .setIssuer(cfg.issuer)
@@ -164,7 +175,12 @@ async function verifyIntegrationState(
   ) {
     throw new Error('invalid state');
   }
-  return { valuationId: payload.v, provider: payload.p, userId: payload.sub };
+  return {
+    valuationId: payload.v,
+    provider: payload.p,
+    userId: payload.sub,
+    ...(typeof payload.n === 'string' ? { binding: payload.n } : {}),
+  };
 }
 
 export const signAccountingState = (s: IntegrationState, cfg: JwtConfig): Promise<string> =>

@@ -13,6 +13,7 @@ import {
   setupTestApp,
   type TestApp,
 } from './helpers.js';
+import { boundState } from './oauthBinding.js';
 
 /** A sweep logger that keeps nothing — these cases assert on the row. */
 const silentLog = { warn: () => {}, error: () => {}, info: () => {} };
@@ -93,13 +94,16 @@ describe.skipIf(!dbUp)('cap-table sync (feature 4)', () => {
 
   /** Drive the OAuth callback with a validly signed state to connect. */
   async function connect(valuationId: string) {
-    const state = await signCapTableSyncState(
+    const { state, headers: stateBinding } = await boundState(
+      signCapTableSyncState,
       { valuationId, provider: 'carta', userId: ops.id },
       { secret: 'integration-test-secret-0123456789abcdef', issuer: 'n409', ttlSeconds: 3600 },
+      'cap-table-sync',
     );
     const res = await ctx.app.inject({
       method: 'GET',
       url: `/api/v1/cap-table-sync/callback?state=${encodeURIComponent(state)}&code=abc&company_id=co_1`,
+      headers: stateBinding,
     });
     expect(res.statusCode).toBe(302);
     expect(res.headers.location).toContain('sync=connected');
@@ -574,13 +578,16 @@ describe.skipIf(!dbUp)('cap-table preview against a table that arrives mid-pull'
       { kind: '409a', companyName: company, userId: ops.id },
       { actorType: 'human', actorId: ops.id, source: 'test' },
     );
-    const state = await signCapTableSyncState(
+    const { state, headers: stateBinding } = await boundState(
+      signCapTableSyncState,
       { valuationId: v.id, provider: 'carta', userId: ops.id },
       { secret: 'integration-test-secret-0123456789abcdef', issuer: 'n409', ttlSeconds: 3600 },
+      'cap-table-sync',
     );
     const cb = await ctx.app.inject({
       method: 'GET',
       url: `/api/v1/cap-table-sync/callback?state=${encodeURIComponent(state)}&code=abc&company_id=co_1`,
+      headers: stateBinding,
     });
     expect(cb.statusCode).toBe(302);
     return { valuationId: v.id, connection: (await findConnection(ctx.pool, v.id, 'carta'))! };
